@@ -1,0 +1,108 @@
+{
+  "TF-E1": [
+    {
+      "Issue id": "TF-E1",
+      "Summary": "MVP 1: Foundation — Auth, RBAC, CRUD, Docs Scaffold",
+      "Issue Type": "Epic",
+      "Description": "Establish TaskFlow AI greenfield monorepo with Clean Architecture backend, Next.js frontend (Vercel-ready), Supabase PostgreSQL with RLS, JWT authentication, RBAC/ABAC, projects/tasks/comments CRUD, audit logs, OpenTelemetry baseline, and co-located AGENT.md governance.\n\nSCOPE:\n- Monorepo scaffold with uv-managed Python backend and Next.js 16 frontend\n- Supabase + Alembic migrations with Row-Level Security on all tenant tables\n- Authentication: JWT + refresh tokens via Supabase Auth\n- RBAC: Admin, Manager, Member roles with ABAC user_id/workspace_id propagation\n- API v1: projects, tasks, comments with repository pattern\n- Frontend: dashboard, auth flows, task/project management UI\n- Security baseline: nh3 (BE), DOMPurify prep, spotlighting utility scaffold\n- Observability: structlog + trace_id, OpenTelemetry baseline, /metrics endpoint\n- Docs: EXECUTION-RULES.md, PLAN.md, tasks/todo.md, tasks/lessons.md\n- CI: GitHub Actions (ruff, mypy, pytest, eslint, docker build)\n\nEFFORT: XL (80 hours)\nPROJECT AREA: Full Stack\nDEPENDENCIES: None\n\nEPIC LINK: epic/taskflow-implementation\nFEATURE BRANCH: epic/TF-E1-foundation\n\nREFERENCE DOCS:\n- docs/TaskFlowAI_Project_Proposal.md (§ MVP 1, § Project Structure)\n- docs/ENGINEERING-STANDARDS.md (when created)\n- docs/SECURITY.md (when created)\n\nSUCCESS CRITERIA:\n- User can register, login, create project, add tasks, comment on tasks\n- RLS prevents cross-tenant data access in integration tests\n- Backend verification gate passes: ruff, mypy, pytest >80% coverage\n- Root AGENT.md, backend/AGENT.md, frontend/AGENT.md, infrastructure/AGENT.md exist\n- docs/EXECUTION-RULES.md and docs/tasks/todo.md populated\n- GET /health and GET /metrics return 200",
+      "Labels": "mvp1,foundation,auth,rbac,crud",
+      "Parent": ""
+    },
+    {
+      "Issue id": "TF-001",
+      "Summary": "Monorepo Init with Root AGENT.md",
+      "Issue Type": "Task",
+      "Description": "Create the taskflow-ai/ root directory with required base files and AGENT.md index.\n\nUSE CASES:\n- Developer clones repo and runs uv sync + npm install without errors\n- Cursor agent reads AGENT.md at session start for workflow rules\n- New contributor finds .env.example with all required variables documented\n\nIMPLEMENTATION DETAILS:\n- Create pyproject.toml with uv-managed dependencies (fastapi>=0.115.0, pydantic>=2.8.0, sqlalchemy[asyncio]>=2.0, alembic, uvicorn, structlog, httpx, python-jose, passlib, redis)\n- Create .env.example: DATABASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY, JWT_SECRET_KEY, REDIS_URL, APP_ENV, APP_DEBUG, OTEL_EXPORTER_OTLP_ENDPOINT, NEXT_PUBLIC_API_URL\n- Create .gitignore: node_modules, .env, __pycache__, .next, .venv, .uv\n- Create root README.md with project overview, hybrid deploy note (Vercel FE + Docker BE)\n- Create AGENT.md: workflow rules table, MVP status, doc index per proposal v2.0.0\n- Create .cursor/rules/: coding.mdc, testing.mdc, refactor.mdc, docs.mdc (stubs)\n\nEFFORT: S (2 hours)\nPROJECT AREA: Infrastructure\nDEPENDENCIES: None\n\nTESTING CRITERIA:\n- All files present at repo root\n- uv sync succeeds without errors\n- .env.example lists every variable used across full stack\n- AGENT.md under 200 lines — index only\n\nEDGE CASES:\n- No secrets committed even accidentally\n- pyproject.toml uses python>=3.12 constraint\n- README documents Vercel cannot host LangGraph/MCP backend",
+      "Labels": "scaffold,infrastructure,mvp1",
+      "Parent": "TF-E1"
+    },
+    {
+      "Issue id": "TF-002",
+      "Summary": "Docs Scaffold and EXECUTION-RULES.md",
+      "Issue Type": "Task",
+      "Description": "Create docs/ tree with workflow source of truth and task tracking files.\n\nUSE CASES:\n- Agent writes plan to docs/tasks/todo.md before coding any epic task\n- Agent reads docs/tasks/lessons.md at session start to avoid repeated mistakes\n- docs/EXECUTION-RULES.md governs all implementation discipline\n\nIMPLEMENTATION DETAILS:\n- Create docs/EXECUTION-RULES.md: §1 Production code, §2 ReAct loop, §3 Agent rules (stub), §4 YOLO exceptions, §5 Tech stack, §6 Testing, §7 Doc sync, §8 Context mgmt, §9 Git branch policy\n- Create docs/PLAN.md: epic checklist from jira-tickets-json\n- Create docs/TOKEN-EFFICIENCY.md: context window discipline\n- Create docs/tasks/todo.md, docs/tasks/lessons.md, docs/tasks/checkpoint.md (templates)\n- Create docs/tasks/checkpoints/.gitkeep\n- Create docs/adr/.gitkeep, docs/learning/.gitkeep, docs/example-code/.gitkeep\n- Create docs/guidance/: docker-setup.md, supabase-setup.md, try-it-locally.md (stubs)\n\nEFFORT: M (3 hours)\nPROJECT AREA: Documentation\nDEPENDENCIES: TF-001\n\nTESTING CRITERIA:\n- All docs paths exist and are non-empty where required\n- EXECUTION-RULES.md references backend verification gate command\n- PLAN.md lists TF-E1 through TF-E7 epics\n\nEDGE CASES:\n- checkpoint.md template includes Resume Command section\n- lessons.md has Security, Architecture, Testing, Workflow sections",
+      "Labels": "docs,workflow,mvp1",
+      "Parent": "TF-E1"
+    },
+    {
+      "Issue id": "TF-003",
+      "Summary": "FastAPI Backend Scaffold",
+      "Issue Type": "Task",
+      "Description": "Create backend/main.py with FastAPI application, health endpoint, API v1 router mount, and structured logging.\n\nUSE CASES:\n- Dev runs uvicorn and hits GET /health for container orchestration probes\n- All API routes mounted under /api/v1/ with consistent error responses\n- Every log line includes trace_id for request correlation\n\nIMPLEMENTATION DETAILS:\n- Create backend/__init__.py, backend/main.py with lifespan context manager\n- Create backend/settings.py: pydantic-settings BaseSettings (all env vars from .env.example)\n- Create backend/logging_config.py: structlog JSON renderer with trace_id processor\n- Create backend/api/v1/router.py: aggregate v1 routers\n- Implement GET /health: {status: healthy, version: APP_VERSION}\n- Implement GET /metrics: Prometheus stub (expanded in TF-011)\n- Add CORS middleware for NEXT_PUBLIC_API_URL origin\n- Create backend/AGENT.md: envelope schema ref, verification gate, error handling patterns\n- Create backend/exceptions.py: AppException hierarchy with structured error responses\n\nEFFORT: M (4 hours)\nPROJECT AREA: Backend\nDEPENDENCIES: TF-001\n\nTESTING CRITERIA:\n- uvicorn starts without errors\n- /health returns 200 JSON\n- Structured logs output as JSON with trace_id\n- CORS headers present on API responses\n- mypy passes on backend/main.py and settings.py\n\nEDGE CASES:\n- Settings validation fails fast on missing DATABASE_URL in production mode\n- Health endpoint requires no authentication\n- APP_DEBUG=false sets log level INFO",
+      "Labels": "backend,fastapi,mvp1",
+      "Parent": "TF-E1"
+    },
+    {
+      "Issue id": "TF-004",
+      "Summary": "Next.js Frontend Scaffold (Vercel-Ready)",
+      "Issue Type": "Task",
+      "Description": "Create frontend/ with Next.js 16 App Router, Tailwind, shadcn/ui base, and Vercel deployment config.\n\nUSE CASES:\n- User visits app and sees TaskFlow AI landing/dashboard shell\n- Frontend deploys to Vercel with NEXT_PUBLIC_API_URL pointing to Docker backend\n- npm run build succeeds for production deployment\n\nIMPLEMENTATION DETAILS:\n- npx create-next-app@latest frontend --typescript --tailwind --app\n- Configure next.config.ts: reactStrictMode true (no standalone — Vercel handles deploy)\n- Install shadcn/ui, TanStack Query, React Hook Form, Zod, DOMPurify\n- Create app/layout.tsx, app/page.tsx: dashboard shell with TaskFlow branding\n- Create frontend/lib/api.ts: typed fetch wrapper with auth header injection\n- Create frontend/AGENT.md: component standards, sanitization, WCAG 2.2 AA, Vitest 75% gate\n- Create vercel.json if needed for API proxy headers\n- Configure Tailwind CSS 4 via @theme in globals.css\n\nEFFORT: M (4 hours)\nPROJECT AREA: Frontend\nDEPENDENCIES: TF-001\n\nTESTING CRITERIA:\n- npm run build succeeds\n- npm run lint passes\n- Dashboard loads at localhost:3000\n- api.ts throws typed error on 401\n\nEDGE CASES:\n- NEXT_PUBLIC_API_URL unset: show config error banner in dev\n- Do NOT use output standalone — Vercel native deploy\n- DOMPurify imported only in client components",
+      "Labels": "frontend,nextjs,mvp1,vercel",
+      "Parent": "TF-E1"
+    },
+    {
+      "Issue id": "TF-005",
+      "Summary": "Supabase Async SQLAlchemy and Alembic Migrations",
+      "Issue Type": "Task",
+      "Description": "Wire Supabase Supavisor (:6543) via async SQLAlchemy with Alembic migrations and RLS-ready schema.\n\nUSE CASES:\n- Admin runs alembic upgrade head against Supabase project\n- Backend persists users, workspaces, projects, tasks, comments via async repository layer\n- RLS policies enforce tenant isolation at database level\n\nIMPLEMENTATION DETAILS:\n- Add asyncpg, sqlalchemy[asyncio], alembic to pyproject.toml\n- Create backend/db/session.py: prepare_database_url (SSL, statement_cache_size=0 for Supavisor)\n- Create backend/db/base.py, backend/db/models.py: User, Workspace, WorkspaceMember, Project, Task, Comment, AuditLog\n- Create alembic/ initial migration 001_initial_schema\n- Create backend/repositories/base.py: AsyncRepository generic pattern\n- Document Supabase RLS policies in docs/guidance/supabase-setup.md\n- All tables include workspace_id for tenant scoping\n\nEFFORT: L (6 hours)\nPROJECT AREA: Backend, Database\nDEPENDENCIES: TF-003\n\nTESTING CRITERIA:\n- alembic upgrade head succeeds against Supabase\n- Models import without circular dependency errors\n- Integration test: insert task, query by workspace_id succeeds\n- statement_cache_size=0 documented for Supavisor\n\nEDGE CASES:\n- Password special characters in DATABASE_URL: quote in .env\n- Migration rollback: downgrade head works cleanly\n- UUID primary keys on all entities",
+      "Labels": "backend,database,supabase,mvp1",
+      "Parent": "TF-E1"
+    },
+    {
+      "Issue id": "TF-006",
+      "Summary": "Authentication JWT and Supabase Auth",
+      "Issue Type": "Task",
+      "Description": "Implement JWT authentication with refresh token rotation and Supabase Auth integration.\n\nUSE CASES:\n- User registers with email/password and receives access + refresh tokens\n- User logs in and accesses protected /api/v1/projects endpoints\n- Expired access token refreshed via POST /api/v1/auth/refresh without re-login\n- Invalid token returns 401 with structured error\n\nIMPLEMENTATION DETAILS:\n- Create backend/api/v1/auth.py: register, login, refresh, logout, me endpoints\n- Create backend/services/auth_service.py: password hashing (passlib bcrypt), JWT create/verify (python-jose)\n- Create backend/schemas/auth.py: RegisterRequest, LoginRequest, TokenResponse, UserResponse\n- Create backend/dependencies/auth.py: get_current_user dependency extracting user_id from JWT\n- Refresh token rotation: invalidate old refresh on use\n- Create frontend/app/login/page.tsx, frontend/app/register/page.tsx\n- Store tokens in httpOnly cookies or secure localStorage per security review\n\nEFFORT: L (8 hours)\nPROJECT AREA: Backend, Frontend\nDEPENDENCIES: TF-005\n\nTESTING CRITERIA:\n- Register → login → me returns user profile\n- Expired access token + valid refresh returns new pair\n- Invalid JWT returns 401\n- Password < 8 chars rejected with 422\n- test_auth.py covers happy path and 5 edge cases\n\nEDGE CASES:\n- Duplicate email registration: 409 Conflict\n- Refresh token reuse after rotation: 401\n- Logout invalidates refresh token server-side\n- Brute force: rate limit login endpoint (10/min per IP)",
+      "Labels": "backend,frontend,auth,mvp1",
+      "Parent": "TF-E1"
+    },
+    {
+      "Issue id": "TF-007",
+      "Summary": "RBAC and ABAC Enforcement",
+      "Issue Type": "Task",
+      "Description": "Implement role-based access control with attribute-based policies on all data paths.\n\nUSE CASES:\n- Admin invites users and manages workspace settings\n- Manager creates projects and assigns tasks to team members\n- Member can only edit own tasks and comment on accessible projects\n- User cannot access another workspace's data (IDOR prevention)\n\nIMPLEMENTATION DETAILS:\n- Define Role enum: ADMIN, MANAGER, MEMBER on WorkspaceMember model\n- Create backend/security/abac.py: check_permission(user, resource, action) -> bool\n- Create backend/dependencies/rbac.py: require_role(*roles) decorator\n- Permission matrix per proposal: Admin (full), Manager (project CRUD), Member (own tasks)\n- Propagate user_id and workspace_id from JWT through service → repository → query filter\n- Add workspace_id to all repository list/get methods as mandatory filter\n- Create backend/tests/test_rbac.py and test_idor.py\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend, Security\nDEPENDENCIES: TF-006\n\nTESTING CRITERIA:\n- Member cannot delete project (403)\n- Manager can assign task to member in same workspace\n- Cross-workspace task access returns 404 not 403 (no leak)\n- ABAC unit tests cover all role × action combinations\n\nEDGE CASES:\n- User removed from workspace mid-session: next request 403\n- Admin demoted to member: permissions update immediately\n- Missing workspace_id in JWT: 401",
+      "Labels": "backend,security,rbac,mvp1",
+      "Parent": "TF-E1"
+    },
+    {
+      "Issue id": "TF-008",
+      "Summary": "Projects and Tasks CRUD API",
+      "Issue Type": "Task",
+      "Description": "Implement Clean Architecture CRUD for projects and tasks with service and repository layers.\n\nUSE CASES:\n- Manager creates project with name and description\n- User creates task with title, description, priority, due_date, assignee\n- User lists tasks filtered by project, status, priority\n- User updates task status (todo → in_progress → done)\n- User soft-deletes task (archived, not hard delete)\n\nIMPLEMENTATION DETAILS:\n- Create backend/api/v1/projects.py, backend/api/v1/tasks.py\n- Create backend/services/project_service.py, backend/services/task_service.py\n- Create backend/repositories/project_repository.py, backend/repositories/task_repository.py\n- Create backend/schemas/project.py, backend/schemas/task.py (Pydantic v2 strict)\n- Task fields: id, project_id, title, description, status, priority, due_date, assignee_id, created_by, workspace_id\n- Priority enum: LOW, MEDIUM, HIGH, URGENT; Status enum: TODO, IN_PROGRESS, DONE, ARCHIVED\n- Pagination: limit/offset on list endpoints\n- nh3 sanitization on description fields in service layer\n\nEFFORT: L (8 hours)\nPROJECT AREA: Backend\nDEPENDENCIES: TF-007\n\nTESTING CRITERIA:\n- Full CRUD cycle for project and task in integration test\n- List tasks by project returns only workspace-scoped tasks\n- Invalid priority enum returns 422\n- Sanitized description strips script tags\n- Repository pattern: no SQL in service layer\n\nEDGE CASES:\n- Create task in non-existent project: 404\n- Assignee not in workspace: 422\n- due_date in past: allowed with warning in response metadata\n- Empty title: 422 validation error",
+      "Labels": "backend,api,crud,mvp1",
+      "Parent": "TF-E1"
+    },
+    {
+      "Issue id": "TF-009",
+      "Summary": "Comments API and XSS Sanitization",
+      "Issue Type": "Task",
+      "Description": "Implement task comments CRUD with backend nh3 and frontend DOMPurify sanitization.\n\nUSE CASES:\n- User adds comment on accessible task\n- User edits own comment within 15 minutes of creation\n- User views comment thread on task detail page\n- Malicious HTML in comment body is stripped, not executed\n\nIMPLEMENTATION DETAILS:\n- Create backend/api/v1/comments.py, backend/services/comment_service.py\n- Create backend/repositories/comment_repository.py, backend/schemas/comment.py\n- Sanitize body with nh3.clean() allowing safe tags only (p, br, strong, em, code)\n- Create frontend/components/CommentThread.tsx with DOMPurify.sanitize before render\n- Comments linked to task_id with workspace_id denormalized for RLS\n- Author can edit/delete own comments; Manager can delete any in workspace\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend, Frontend\nDEPENDENCIES: TF-008\n\nTESTING CRITERIA:\n- Comment CRUD integration test passes\n- <script>alert(1)</script> stripped in API response\n- DOMPurify test: rendered HTML contains no script tags\n- Non-author edit attempt returns 403\n\nEDGE CASES:\n- Comment on archived task: 409 Conflict\n- Empty comment body: 422\n- Very long comment (>10000 chars): 422\n- Deleted task: comments return 404 on new comment",
+      "Labels": "backend,frontend,comments,security,mvp1",
+      "Parent": "TF-E1"
+    },
+    {
+      "Issue id": "TF-010",
+      "Summary": "Dashboard and Task Management Frontend",
+      "Issue Type": "Task",
+      "Description": "Build dashboard UI with project overview, task list, task detail, and forms.\n\nUSE CASES:\n- User sees dashboard with project cards and overdue task count\n- User creates/edits task via modal form with Zod validation\n- User navigates project → task list → task detail with comments\n- Loading and error states shown via TanStack Query\n\nIMPLEMENTATION DETAILS:\n- Create frontend/components/Dashboard.tsx, ProjectCard.tsx, TaskList.tsx, TaskForm.tsx\n- Create frontend/app/projects/[id]/page.tsx, frontend/app/tasks/[id]/page.tsx\n- TanStack Query hooks: useProjects, useTasks, useComments with optimistic updates\n- React Hook Form + Zod schemas mirroring backend Pydantic models\n- shadcn/ui: Button, Dialog, Input, Select, Badge for priority/status\n- WCAG 2.2 AA: keyboard nav, aria labels on forms\n\nEFFORT: L (10 hours)\nPROJECT AREA: Frontend\nDEPENDENCIES: TF-004, TF-008, TF-009\n\nTESTING CRITERIA:\n- Vitest component tests for TaskForm validation\n- E2E happy path: login → create project → create task → add comment\n- Error boundary catches API failures gracefully\n- Mobile responsive layout at 375px width\n\nEDGE CASES:\n- Empty project list: show onboarding CTA\n- Network error on save: toast with retry\n- Concurrent edit conflict: show latest server state\n- Session expired mid-form: redirect to login",
+      "Labels": "frontend,dashboard,mvp1",
+      "Parent": "TF-E1"
+    },
+    {
+      "Issue id": "TF-011",
+      "Summary": "Audit Logs and OpenTelemetry Baseline",
+      "Issue Type": "Task",
+      "Description": "Implement append-only audit trail and OpenTelemetry trace_id propagation with Prometheus /metrics.\n\nUSE CASES:\n- Admin views audit log of auth events and task changes\n- Every API request has trace_id in logs and response header\n- Ops scrapes /metrics for api_request_duration_seconds histogram\n\nIMPLEMENTATION DETAILS:\n- Create backend/services/audit_service.py: log_event(actor_id, action, resource_type, resource_id, metadata)\n- Audit events: user.login, user.register, task.created, task.updated, task.deleted, comment.created\n- Create backend/telemetry.py: configure_opentelemetry(), get_tracer()\n- Middleware: bind trace_id to structlog context, set X-Trace-Id response header\n- Create backend/metrics.py: api_request_duration_seconds, http_requests_total\n- Mount prometheus /metrics on FastAPI (no auth required)\n- Create backend/security/spotlighting.py: spotlight_external_content() scaffold for MVP 3\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend, Observability\nDEPENDENCIES: TF-003\n\nTESTING CRITERIA:\n- Task create generates audit log entry with correct actor_id\n- trace_id consistent in logs for single request\n- /metrics returns Prometheus text format\n- spotlighting wraps content in <<<EXTERNAL_CONTENT>>> markers\n\nEDGE CASES:\n- OTLP endpoint unavailable: log warning, continue without export\n- Audit log write failure: log error, do not fail main request\n- PII in audit metadata: hash or omit sensitive fields",
+      "Labels": "backend,observability,audit,mvp1",
+      "Parent": "TF-E1"
+    },
+    {
+      "Issue id": "TF-012",
+      "Summary": "GitHub Actions CI and Docker Backend Scaffold",
+      "Issue Type": "Task",
+      "Description": "Create CI pipeline and multi-stage Dockerfile for backend (frontend deploys to Vercel separately).\n\nUSE CASES:\n- PR to epic/taskflow-implementation triggers lint, typecheck, test jobs\n- Docker image builds for backend API deployment to GHCR\n- infrastructure/AGENT.md documents CI/CD rules\n\nIMPLEMENTATION DETAILS:\n- Create .github/workflows/ci.yml: backend (uv sync, ruff, mypy, pytest), frontend (npm ci, lint, build), docker build\n- Create infrastructure/Dockerfile: python:3.12-slim, uv sync, copy backend/, EXPOSE 8010\n- Create infrastructure/docker-compose.yml: app + redis services for local dev\n- Create infrastructure/nginx.conf: proxy /api to FastAPI (for local hybrid test)\n- Create infrastructure/AGENT.md: CI gates, Cosign placeholder for MVP 6\n- Cache uv and npm in CI\n- workflow-docs job: verify docs/tasks/todo.md and lessons.md exist\n\nEFFORT: M (4 hours)\nPROJECT AREA: Infrastructure, CI/CD\nDEPENDENCIES: TF-003, TF-004\n\nTESTING CRITERIA:\n- All CI jobs pass on clean codebase\n- docker build succeeds\n- docker-compose up: /health returns 200\n- Failed ruff check fails PR\n\nEDGE CASES:\n- Docker build without frontend artifact: backend-only image\n- CI runs on push to epic/taskflow-implementation and PRs\n- mypy strict mode: zero errors on backend/",
+      "Labels": "cicd,docker,infrastructure,mvp1",
+      "Parent": "TF-E1"
+    }
+  ]
+}

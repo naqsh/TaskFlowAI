@@ -1,0 +1,84 @@
+{
+  "TF-E3-part2": [
+    {
+      "Issue id": "TF-031",
+      "Summary": "Verification Agent Implementation",
+      "Issue Type": "Task",
+      "Description": "Create Verification Agent to validate Planner output for schema compliance, logic, and completeness.\n\nUSE CASES:\n- Planner returns task_draft missing required due_date for HIGH priority → verification flags concern\n- Valid structured task passes verification with no concerns\n- Verification failure triggers one retry with feedback to Planner\n\nIMPLEMENTATION DETAILS:\n- Create backend/agents/verification/__init__.py, AGENT.md, node.py\n- Load prompts from prompts/verification/ (11-file v2.0.0)\n- Input: planner result + original context\n- Checks: JSON schema match, due_date after today, priority enum valid, title non-empty, assignee in workspace\n- LLM-assisted logic checks for contradictory dates and missing fields\n- Return AgentResultEnvelope with concerns[] list (empty = pass)\n- Escalation: verification_failed if major concerns after checklist\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend\nDEPENDENCIES: TF-026, TF-021\n\nTESTING CRITERIA:\n- Valid planner output passes with zero concerns\n- Missing title flagged as major concern\n- Invalid priority enum flagged\n- Envelope status success when no major concerns\n\nEDGE CASES:\n- Planner returned summary mode: skip task field validation, check summary non-empty\n- LLM verification timeout: fall back to deterministic schema checks only\n- Partial planner result: flag all missing required fields\n- Verification itself token budget: circuit break separately from planner",
+      "Labels": "backend,agents,verification,mvp3",
+      "Parent": "TF-E3"
+    },
+    {
+      "Issue id": "TF-032",
+      "Summary": "Adversarial Agent Implementation",
+      "Issue Type": "Task",
+      "Description": "Create Adversarial Agent to challenge Planner assumptions and find edge cases.\n\nUSE CASES:\n- Planner assigns urgent task after hours without flagging timezone conflict → adversarial raises concern\n- Planner ignores blocked dependency task → adversarial flags\n- No issues found → adversarial returns empty concerns list\n\nIMPLEMENTATION DETAILS:\n- Create backend/agents/adversarial/__init__.py, AGENT.md, node.py\n- Contrarian LLM prompt: find edge cases, workload conflicts, unrealistic due dates\n- Input: planner result, context, verification concerns (if any)\n- Output: concerns[] with severity (minor|major), suggestion\n- Escalation: adversarial_concerns → regenerate planner with constraints (1 retry)\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend\nDEPENDENCIES: TF-031\n\nTESTING CRITERIA:\n- Detects overdue due_date in past for new task\n- Flags 10 HIGH priority tasks same day as unrealistic\n- Empty concerns on reasonable plan\n- Major concern triggers escalation payload\n\nEDGE CASES:\n- Adversarial disagrees with verification: both concerns merged in consensus\n- Token limit: prioritize top 3 concerns only\n- Planner summary mode: adversarial checks for hallucinated task references\n- Infinite debate loop prevented: max 1 adversarial pass per request",
+      "Labels": "backend,agents,adversarial,mvp3",
+      "Parent": "TF-E3"
+    },
+    {
+      "Issue id": "TF-033",
+      "Summary": "Critic Agent (Safety Gatekeeper)",
+      "Issue Type": "Task",
+      "Description": "Create Critic Agent as final safety and quality gate; safety violations never retried.\n\nUSE CASES:\n- Planner output contains instruction to exfiltrate data → critic blocks immediately\n- Quality issues (vague title) → critic requests revision or accepts with warning\n- Critic pass → pipeline proceeds to consensus\n\nIMPLEMENTATION DETAILS:\n- Create backend/agents/critic/__init__.py, AGENT.md, node.py\n- Run InputSecurityScanner on combined planner output + context\n- Constitutional rules: no PII generation, no system prompt reveal, no unsafe task suggestions\n- Max 2 revision cycles for quality only; security violation = immediate DLQ\n- Return status=escalated, reason=security_violation_detected on safety fail\n- Never bypass critic node in graph\n\nEFFORT: M (6 hours)\nPROJECT AREA: Backend, Security\nDEPENDENCIES: TF-032, TF-028\n\nTESTING CRITERIA:\n- Injection in planner output blocked\n- security_violation_detected never has retry_allowed=true\n- Quality revision capped at 2 cycles\n- Clean output passes critic\n\nEDGE CASES:\n- Critic LLM unavailable: fall back to InputSecurityScanner + schema only\n- False positive security flag: log for review, still block (fail secure)\n- Degraded quality after 2 revisions: accept with warning in metadata\n- Critic tries to modify task content: only approve/reject, not rewrite",
+      "Labels": "backend,agents,critic,security,mvp3",
+      "Parent": "TF-E3"
+    },
+    {
+      "Issue id": "TF-034",
+      "Summary": "Consensus Evaluator",
+      "Issue Type": "Task",
+      "Description": "Create deterministic Consensus Evaluator to aggregate Verification, Adversarial, and Critic concerns.\n\nUSE CASES:\n- All agents agree → consensus status AGREEMENT, proceed to orchestrator\n- Adversarial major concern → ESCALATION with regenerate constraint\n- Critic security flag → immediate rejection, route DLQ\n\nIMPLEMENTATION DETAILS:\n- Create backend/graph/consensus.py: evaluate_consensus(verification, adversarial, critic) -> ConsensusResult\n- Rules per proposal: security_violation → reject; verification_failed → 1 retry; adversarial major → regenerate; else agreement\n- ConsensusResult: status (agreement|escalation|rejected), reason, retry_allowed, constraints\n- Pure Python — no LLM call\n- Create backend/agents/consensus/AGENT.md documenting rules\n\nEFFORT: S (3 hours)\nPROJECT AREA: Backend\nDEPENDENCIES: TF-031, TF-032, TF-033\n\nTESTING CRITERIA:\n- All empty concerns → agreement\n- Critic security → rejected, retry_allowed=false\n- Verification major → escalation, retry_allowed=true, max 1\n- Unit tests cover all escalation reason enums\n\nEDGE CASES:\n- Conflicting minor vs major severity: major wins\n- Multiple escalation reasons: priority order security > verification > adversarial\n- Missing agent result in state: treat as escalation mcp_timeout\n- Consensus on summary-only mode: same rules, different field checks",
+      "Labels": "backend,consensus,langgraph,mvp3",
+      "Parent": "TF-E3"
+    },
+    {
+      "Issue id": "TF-035",
+      "Summary": "Orchestrator Agent (Supervisor + Presenter)",
+      "Issue Type": "Task",
+      "Description": "Create Orchestrator for routing, synthesis, and structured JSON presentation to API layer.\n\nUSE CASES:\n- Orchestrator routes NL request to context → planner → verification chain\n- On agreement, orchestrator composes final AI response JSON for API\n- On escalation, orchestrator applies retry or DLQ routing\n- Sub-agents never produce user-facing markdown — orchestrator returns structured JSON only\n\nIMPLEMENTATION DETAILS:\n- Create backend/agents/orchestrator/__init__.py, AGENT.md, node.py\n- Nodes: orchestrator_route, orchestrator_present, orchestrator_handle_escalation\n- Present: merge planner result into AIResponse schema, nh3 sanitize string fields\n- Include metadata: agents_executed, total_tokens, cache_hit_rate, trace_id\n- Handle consent_required stub for MVP 5\n\nEFFORT: L (8 hours)\nPROJECT AREA: Backend\nDEPENDENCIES: TF-034, TF-026\n\nTESTING CRITERIA:\n- Full success path returns AIResponse JSON\n- Escalation routes to dlq_handler when retries exhausted\n- Output sanitized — no script tags in task title\n- metadata includes per-agent execution_ms\n\nEDGE CASES:\n- Partial agent failure: degraded status with available data\n- All agents fail: failure status, no 500 to client\n- Double presentation call: idempotent on request_id\n- Orchestrator token usage separate from sub-agents for accounting",
+      "Labels": "backend,agents,orchestrator,mvp3",
+      "Parent": "TF-E3"
+    },
+    {
+      "Issue id": "TF-036",
+      "Summary": "Full LangGraph Multi-Agent Wiring",
+      "Issue Type": "Task",
+      "Description": "Wire complete IBM verification workflow into LangGraph with conditional edges and DLQ handler.\n\nUSE CASES:\n- End-to-end AI request flows through all 6 agents + consensus\n- Parallel context fetch then sequential verification pipeline\n- Circuit breaker on 2x token budget drops to DLQ\n\nIMPLEMENTATION DETAILS:\n- Update backend/graph/builder.py: build_taskflow_ai_graph()\n- Nodes: orchestrator_route, context_agent, input_security_gate, planner, verification, adversarial, critic, consensus, orchestrator_present, dlq_handler\n- Edges: route → context → security_gate → planner → verification → adversarial → critic → consensus → present|dlq|retry_planner\n- should_circuit_break(state) on total tokens > 2x budget\n- Compile with MemorySaver checkpoint optional\n- Retry planner once on verification_failed with feedback in state\n\nEFFORT: L (8 hours)\nPROJECT AREA: Backend\nDEPENDENCIES: TF-035, TF-030\n\nTESTING CRITERIA:\n- graph.ainvoke() completes full happy path in integration test\n- Security violation routes to DLQ without retry\n- Token circuit breaker triggers dlq_handler\n- Parallel context node completes before planner\n\nEDGE CASES:\n- Node exception: catch, convert to escalation envelope\n- Graph total timeout 120s: circuit break\n- Retry loop max 1 for verification, 1 for adversarial regenerate\n- State serialization for checkpoint excludes raw MCP secrets",
+      "Labels": "backend,langgraph,mvp3",
+      "Parent": "TF-E3"
+    },
+    {
+      "Issue id": "TF-037",
+      "Summary": "AI API Endpoints",
+      "Issue Type": "Task",
+      "Description": "Implement POST /api/v1/ai/parse-task, /ai/summarize, /ai/prioritize endpoints invoking LangGraph.\n\nUSE CASES:\n- Frontend sends NL task description → receives structured task draft for user confirmation\n- User requests project summary → receives bullet summary\n- User requests priority suggestions → receives ranked task list with reasoning\n\nIMPLEMENTATION DETAILS:\n- Create backend/api/v1/ai.py\n- Schemas: AIParseTaskRequest, AISummarizeRequest, AIPrioritizeRequest, AIResponse\n- Rate limit: 10 AI requests/min/user (stricter than CRUD)\n- Invoke graph with mode in state; require AI consent flag (stub true in MVP 3, enforced MVP 5)\n- Return 200 with status success|degraded|failure; include trace_id header\n- Background: record token metrics after each call\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend\nDEPENDENCIES: TF-036\n\nTESTING CRITERIA:\n- parse-task returns task_draft matching schema\n- Rate limit 11th request returns 429\n- trace_id in X-Trace-Id response header\n- Unauthenticated request returns 401\n\nEDGE CASES:\n- Graph timeout: 504 Gateway Timeout\n- Consent not granted: 403 with consent_required body (MVP 5)\n- Empty NL input: 422\n- Workspace with no tasks for prioritize: 200 with empty suggestions",
+      "Labels": "backend,api,ai,mvp3",
+      "Parent": "TF-E3"
+    },
+    {
+      "Issue id": "TF-038",
+      "Summary": "Prompt Packs v2.0.0 (11-File per Agent)",
+      "Issue Type": "Task",
+      "Description": "Create complete 11-file prompt structure for all 6 agents per v2.0.0 standards.\n\nUSE CASES:\n- Each agent loads versioned prompts at runtime from prompts/{agent}/\n- Prompts include 3-5 examples with <thinking> tags\n- Security rules and spotlighting instructions in every guardrails.md and input-security.md\n\nIMPLEMENTATION DETAILS:\n- Create prompts/AGENT.md with v2.0.0 standards\n- Per agent (context, planner, verification, adversarial, critic, orchestrator): system.md, context.md, instructions.md, examples.md, output-schema.md, tools.md, reasoning.md, guardrails.md, input-security.md, quality-checklist.md, CHANGELOG.md, CONTRACT.md\n- Version v2.0.0 in CHANGELOG and CONTRACT token budgets\n- XML structure: <instructions>, <examples>, <external_content>\n- Include CRITICAL SECURITY RULE for spotlighting in system.md\n- Loader: backend/llm/prompt_loader.py loads and assembles with cache-friendly ordering\n\nEFFORT: L (10 hours)\nPROJECT AREA: Prompts\nDEPENDENCIES: TF-026\n\nTESTING CRITERIA:\n- All 6 agent dirs have 12 files each (11 + CONTRACT)\n- prompt_loader loads without FileNotFoundError\n- examples.md has >=3 examples with <thinking> blocks\n- CONTRACT.md specifies max_tokens per agent\n\nEDGE CASES:\n- Missing prompt file: fail fast at startup with clear error\n- Prompt total tokens >32K: warn in CONTRACT, split cache blocks\n- Dynamic date in prompt: inject after cached blocks\n- XML malformed: CI test parses all prompt files",
+      "Labels": "prompts,mvp3",
+      "Parent": "TF-E3"
+    },
+    {
+      "Issue id": "TF-039",
+      "Summary": "Prompt Caching and Token Metrics",
+      "Issue Type": "Task",
+      "Description": "Implement Claude cache_control and OpenAI prefix caching with Prometheus cache hit metrics.\n\nUSE CASES:\n- Repeated AI requests within 5 min charge 90% fewer tokens on cached system prompts\n- Ops monitors prompt_cache_hit_rate target >70%\n- Stable prompt content cached; dynamic user input not cached\n\nIMPLEMENTATION DETAILS:\n- Update LLMRouter to structure system prompts with cache_control ephemeral blocks (Claude)\n- OpenAI: ensure system prompt >=1024 tokens, stable prefix\n- Metrics: prompt_cache_hits_total, prompt_cache_misses_total, cached_tokens_saved_total, prompt_cache_hit_rate gauge\n- Track cache_read_input_tokens from API responses in ExecutionMetadata\n- Document cache warming deferral to MVP 6 (TF-058)\n- Grafana panel queries in docs/OBSERVABILITY.md\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend, Observability\nDEPENDENCIES: TF-025, TF-038\n\nTESTING CRITERIA:\n- Second identical request reports cache_read_tokens > 0 (integration with mock)\n- Cache hit rate gauge updates\n- Dynamic content after cached blocks in system array\n- metadata.prompt_version included in envelope\n\nEDGE CASES:\n- Prompt version change invalidates cache (version string in stable block)\n- Provider without cache support: metrics show miss, no error\n- Whitespace change in prompt breaks OpenAI cache: document in prompts/AGENT.md\n- cache hit rate calculation: avoid division by zero",
+      "Labels": "backend,llm,observability,mvp3",
+      "Parent": "TF-E3"
+    },
+    {
+      "Issue id": "TF-040",
+      "Summary": "AI Frontend — Consent Modal and AI Features UI",
+      "Issue Type": "Task",
+      "Description": "Build frontend for NL task creation, AI summarize/prioritize, consent modal, and observability badge.\n\nUSE CASES:\n- User clicks 'Create with AI' on task form, enters NL, previews structured draft before save\n- First AI use shows consent modal explaining data access scope\n- User sees token usage and model in ObservabilityBadge after AI call\n\nIMPLEMENTATION DETAILS:\n- Create frontend/components/AITaskCreator.tsx: NL input → POST /ai/parse-task → preview form\n- Create frontend/components/ConsentPromptModal.tsx: accept/decline AI data access (persist preference)\n- Create frontend/components/ObservabilityBadge.tsx: execution_ms, tokens, model_used, cache hit\n- Create frontend/components/AIProjectSummary.tsx for project page\n- Integrate into TaskForm and project dashboard\n- Zod validate AIResponse before displaying\n\nEFFORT: L (8 hours)\nPROJECT AREA: Frontend\nDEPENDENCIES: TF-037, TF-010\n\nTESTING CRITERIA:\n- AI task creator E2E: NL → preview → confirm → task created via CRUD API\n- Consent modal blocks AI call until accepted\n- ObservabilityBadge shows on successful AI response\n- Vitest tests for modal and badge components\n\nEDGE CASES:\n- AI returns degraded status: show warning banner, allow edit before save\n- User declines consent: hide AI features, show settings link\n- AI timeout: toast with retry button\n- XSS in AI-suggested title: sanitized before render",
+      "Labels": "frontend,ai,mvp3",
+      "Parent": "TF-E3"
+    }
+  ]
+}

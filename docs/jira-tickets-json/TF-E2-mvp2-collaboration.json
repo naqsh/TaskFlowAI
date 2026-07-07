@@ -1,0 +1,76 @@
+{
+  "TF-E2": [
+    {
+      "Issue id": "TF-E2",
+      "Summary": "MVP 2: Collaboration — Notifications, Attachments, Search, Timeline",
+      "Issue Type": "Epic",
+      "Description": "Extend TaskFlow AI with collaboration features: in-app notifications, validated file attachments with signed URLs, full-text search and filters, activity timeline, transactional email, and Redis caching for sessions and rate limits.\n\nSCOPE:\n- In-app notification system (task assigned, comment added, due date reminder)\n- File attachments on tasks with MIME validation and signed URL access\n- Search across tasks, projects, comments with filters (status, priority, assignee, date range)\n- Activity timeline per project and task (audit-derived feed)\n- Email notifications via transactional provider (Resend/SendGrid)\n- Redis integration for session cache and API rate limiting\n- Frontend components for notifications bell, search bar, attachment upload, timeline\n\nEFFORT: L (50 hours)\nPROJECT AREA: Full Stack\nDEPENDENCIES: TF-E1 complete — auth, CRUD, RBAC operational\n\nEPIC LINK: epic/taskflow-implementation\nFEATURE BRANCH: epic/TF-E2-collaboration\n\nREFERENCE DOCS:\n- docs/TaskFlowAI_Project_Proposal.md (§ MVP 2)\n- docs/SECURITY.md (file validation, SSRF allowlists)\n\nSUCCESS CRITERIA:\n- User receives in-app notification when assigned a task\n- User uploads attachment <10MB, downloads via time-limited signed URL\n- Search returns relevant tasks within 200ms P95\n- Activity timeline shows last 50 events per project\n- Email sent on task assignment (configurable opt-out)\n- Redis rate limiting blocks >100 req/min per user with 429",
+      "Labels": "mvp2,collaboration,notifications,search",
+      "Parent": ""
+    },
+    {
+      "Issue id": "TF-013",
+      "Summary": "In-App Notifications System",
+      "Issue Type": "Task",
+      "Description": "Implement notification model, service, API, and real-time polling UI for workspace events.\n\nUSE CASES:\n- User assigned to task receives notification 'You were assigned to Fix login bug'\n- User clicks notification bell and sees unread count badge\n- User marks notification as read; badge count decrements\n- User marks all as read\n\nIMPLEMENTATION DETAILS:\n- Create Notification model: id, user_id, workspace_id, type, title, body, resource_type, resource_id, read_at, created_at\n- Alembic migration 002_notifications\n- Create backend/services/notification_service.py: create_notification, list_unread, mark_read, mark_all_read\n- Create backend/api/v1/notifications.py: GET /notifications, PATCH /notifications/{id}/read, POST /notifications/read-all\n- Emit notifications from task_service on assign, comment_service on new comment\n- Create frontend/components/NotificationBell.tsx with polling every 30s (TanStack Query refetchInterval)\n\nEFFORT: M (6 hours)\nPROJECT AREA: Backend, Frontend\nDEPENDENCIES: TF-008\n\nTESTING CRITERIA:\n- Assign task creates notification for assignee\n- List returns only current user's notifications\n- mark_read sets read_at timestamp\n- Unread count accurate in API response\n\nEDGE CASES:\n- Self-assignment: optional notification (configurable, default skip)\n- Notification for deleted task: body shows '[deleted]' without 500\n- >100 unread: paginate with limit=50 default\n- Cross-workspace notification access: 404",
+      "Labels": "backend,frontend,notifications,mvp2",
+      "Parent": "TF-E2"
+    },
+    {
+      "Issue id": "TF-014",
+      "Summary": "File Attachments with Validation and Signed URLs",
+      "Issue Type": "Task",
+      "Description": "Implement secure file upload for task attachments with MIME validation, size limits, and signed download URLs.\n\nUSE CASES:\n- User attaches PDF screenshot to bug report task\n- User downloads attachment via signed URL valid for 15 minutes\n- User cannot upload executable (.exe) or oversized file\n- Manager views all attachments on task detail page\n\nIMPLEMENTATION DETAILS:\n- Create Attachment model: id, task_id, filename, mime_type, size_bytes, storage_key, uploaded_by, workspace_id\n- Alembic migration 003_attachments\n- Storage: Supabase Storage or S3-compatible with workspace-prefixed keys\n- Create backend/services/attachment_service.py: validate_mime (allowlist: image/*, application/pdf, text/plain), max 10MB\n- POST /api/v1/tasks/{id}/attachments (multipart), GET /api/v1/attachments/{id}/download (signed URL)\n- SSRF defense: no user-supplied URLs in storage layer\n- Create frontend/components/AttachmentUpload.tsx with drag-drop and progress\n\nEFFORT: L (8 hours)\nPROJECT AREA: Backend, Frontend, Security\nDEPENDENCIES: TF-008\n\nTESTING CRITERIA:\n- Upload PNG succeeds, returns attachment metadata\n- Upload .exe rejected with 415\n- Upload >10MB rejected with 413\n- Signed URL expires after TTL\n- Download without valid signature returns 403\n\nEDGE CASES:\n- Upload to task in another workspace: 404\n- Duplicate filename: allow with unique storage_key\n- Storage service unavailable: 503 with retry-after\n- Virus scan hook: stub interface for future ClamAV integration",
+      "Labels": "backend,frontend,attachments,security,mvp2",
+      "Parent": "TF-E2"
+    },
+    {
+      "Issue id": "TF-015",
+      "Summary": "Search and Filters API",
+      "Issue Type": "Task",
+      "Description": "Implement full-text search and structured filters across tasks, projects, and comments.\n\nUSE CASES:\n- User searches 'login timeout' and sees matching tasks and comments\n- User filters tasks by status=IN_PROGRESS and priority=HIGH\n- User filters by assignee and due date range\n- Manager searches within single project scope\n\nIMPLEMENTATION DETAILS:\n- Create backend/api/v1/search.py: GET /api/v1/search?q=&type=tasks|projects|comments&filters...\n- PostgreSQL: tsvector on task.title, task.description, comment.body with GIN index\n- Filters: project_id, status, priority, assignee_id, due_before, due_after\n- Create backend/services/search_service.py with workspace_id mandatory scope\n- Pagination: limit max 50, cursor-based for large result sets\n- Create frontend/components/SearchBar.tsx with debounced input and filter chips\n\nEFFORT: M (6 hours)\nPROJECT AREA: Backend, Frontend\nDEPENDENCIES: TF-008, TF-009\n\nTESTING CRITERIA:\n- Search 'login' returns tasks with login in title or description\n- Filter status=TODO excludes IN_PROGRESS tasks\n- Cross-workspace results never returned\n- Empty query with filters returns filtered list\n- P95 latency <200ms on 1000 task dataset (benchmark test)\n\nEDGE CASES:\n- SQL injection in q param: parameterized query only\n- Special chars in search: escape for tsquery\n- No results: return empty array with total=0\n- Search across archived tasks: exclude by default, ?include_archived=true for admin",
+      "Labels": "backend,frontend,search,mvp2",
+      "Parent": "TF-E2"
+    },
+    {
+      "Issue id": "TF-016",
+      "Summary": "Activity Timeline per Project and Task",
+      "Issue Type": "Task",
+      "Description": "Build activity feed derived from audit logs and entity events for project and task views.\n\nUSE CASES:\n- User views project page and sees timeline: 'Alice created task X', 'Bob commented on Y'\n- User views task detail sidebar with chronological activity\n- Timeline shows actor name, action, timestamp, relative time ('2 hours ago')\n\nIMPLEMENTATION DETAILS:\n- Create backend/api/v1/activity.py: GET /projects/{id}/activity, GET /tasks/{id}/activity\n- Create backend/services/activity_service.py: aggregate from audit_log + comment/task events\n- ActivityEvent schema: id, actor, action, resource, summary, created_at\n- Limit 50 events per request, cursor pagination for history\n- Create frontend/components/ActivityTimeline.tsx with icons per action type\n- Extend audit_service to capture comment.created, task.status_changed with metadata\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend, Frontend\nDEPENDENCIES: TF-011, TF-008\n\nTESTING CRITERIA:\n- Task create appears in project activity within same request cycle\n- Comment add appears in task activity\n- Timeline ordered descending by created_at\n- Non-member cannot view project activity (403)\n\nEDGE CASES:\n- Deleted user actor: show 'Former member'\n- Bulk task import: collapse into single activity event\n- Activity for soft-deleted task: show with archived badge\n- Empty timeline: friendly empty state message",
+      "Labels": "backend,frontend,activity,mvp2",
+      "Parent": "TF-E2"
+    },
+    {
+      "Issue id": "TF-017",
+      "Summary": "Transactional Email Notifications",
+      "Issue Type": "Task",
+      "Description": "Send transactional emails for task assignment and due date reminders with user opt-out preference.\n\nUSE CASES:\n- User assigned to task receives email with task title and link\n- User receives due date reminder 24 hours before deadline\n- User disables email notifications in preferences; no emails sent\n- Email contains no sensitive data beyond task title and link\n\nIMPLEMENTATION DETAILS:\n- Add resend or sendgrid SDK to pyproject.toml\n- Create backend/services/email_service.py: send_task_assigned, send_due_reminder\n- Create UserPreference model field: email_notifications_enabled (default true)\n- HTML email templates in backend/templates/email/ (minimal, no tracking pixels)\n- Background job: APScheduler or FastAPI BackgroundTasks for due date scan (daily cron)\n- Settings: EMAIL_API_KEY, EMAIL_FROM_ADDRESS\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend\nDEPENDENCIES: TF-013\n\nTESTING CRITERIA:\n- Assign task triggers email when preference enabled\n- Preference disabled: no email sent, in-app notification still created\n- Email template renders task title and deep link URL\n- Mock email provider in tests; assert call count\n\nEDGE CASES:\n- Invalid email address on user: skip send, log warning\n- Email provider rate limit: retry with tenacity 3x\n- Due reminder for completed task: skip\n- Unsubscribe link in email footer (future: one-click opt-out token)",
+      "Labels": "backend,email,mvp2",
+      "Parent": "TF-E2"
+    },
+    {
+      "Issue id": "TF-018",
+      "Summary": "Redis Caching and Rate Limiting",
+      "Issue Type": "Task",
+      "Description": "Integrate Redis for session cache, API rate limiting, and foundation for MVP 3 working memory.\n\nUSE CASES:\n- Repeated GET /api/v1/projects served from cache within TTL (optional)\n- User exceeding 100 requests/minute receives 429 Too Many Requests\n- Login endpoint limited to 10 attempts/minute per IP\n- Redis connection pooled for async FastAPI\n\nIMPLEMENTATION DETAILS:\n- Add redis[hiredis] to pyproject.toml\n- Create backend/cache/redis_client.py: async Redis connection pool from REDIS_URL\n- Create backend/middleware/rate_limit.py: sliding window per user_id and per IP\n- Rate limits: global 100/min user, auth 10/min IP, search 30/min user\n- Add redis service to infrastructure/docker-compose.yml\n- Headers: X-RateLimit-Remaining, Retry-After on 429\n- Metrics: rate_limit_exceeded_total counter\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend, Infrastructure\nDEPENDENCIES: TF-012\n\nTESTING CRITERIA:\n- 101st request in minute returns 429\n- Rate limit resets after window\n- Redis down: fail open with warning log (not 500 on all requests)\n- rate_limit_exceeded_total increments\n\nEDGE CASES:\n- Unauthenticated requests: rate limit by IP only\n- Admin role: optional higher limit (200/min)\n- Redis connection timeout: 2s max, degrade gracefully\n- Health check does not count toward rate limit",
+      "Labels": "backend,redis,security,mvp2",
+      "Parent": "TF-E2"
+    },
+    {
+      "Issue id": "TF-019",
+      "Summary": "Collaboration Frontend Components Integration",
+      "Issue Type": "Task",
+      "Description": "Integrate notification bell, search, attachments, and activity timeline into main app layout.\n\nUSE CASES:\n- User navigates app with notification bell always visible in header\n- User searches from global search bar in navbar\n- Task detail page shows attachments section and activity sidebar\n- All collaboration features respect auth and workspace scope\n\nIMPLEMENTATION DETAILS:\n- Update frontend/app/layout.tsx: header with NotificationBell, SearchBar\n- Update task detail page: AttachmentUpload list, ActivityTimeline sidebar\n- User preferences page: email notification toggle\n- TanStack Query cache invalidation on notification read, attachment upload\n- Vitest tests for NotificationBell, SearchBar, ActivityTimeline\n\nEFFORT: M (6 hours)\nPROJECT AREA: Frontend\nDEPENDENCIES: TF-013, TF-014, TF-015, TF-016, TF-010\n\nTESTING CRITERIA:\n- Vitest coverage >75% on new components\n- Search debounce 300ms prevents excessive API calls\n- Attachment list refreshes after upload without page reload\n- WCAG: notification bell has aria-label\n\nEDGE CASES:\n- Slow network: skeleton loaders on timeline and attachments\n- Search with no results: empty state with clear filters CTA\n- Mobile: notification dropdown scrollable, max-height 80vh",
+      "Labels": "frontend,collaboration,mvp2",
+      "Parent": "TF-E2"
+    },
+    {
+      "Issue id": "TF-020",
+      "Summary": "MVP 2 Integration Tests and Documentation",
+      "Issue Type": "Task",
+      "Description": "End-to-end integration tests for collaboration features and update PLAN.md.\n\nUSE CASES:\n- CI runs full collaboration flow test on every PR\n- docs/PLAN.md reflects TF-E2 completion status\n- docs/learning/mvp2-collaboration.md captures patterns used\n\nIMPLEMENTATION DETAILS:\n- Create backend/tests/integration/test_collaboration_flow.py: assign → notify → comment → activity → search\n- Create backend/tests/integration/test_attachments.py: upload, download, reject invalid mime\n- Create backend/tests/integration/test_rate_limit.py: 429 after threshold\n- Update docs/PLAN.md with TF-013 through TF-020 status\n- Write docs/learning/mvp2-collaboration.md\n- Update docs/tasks/todo.md epic TF-E2 section\n\nEFFORT: S (4 hours)\nPROJECT AREA: Testing, Documentation\nDEPENDENCIES: TF-013, TF-014, TF-015, TF-016, TF-017, TF-018, TF-019\n\nTESTING CRITERIA:\n- All integration tests pass in CI\n- Backend coverage remains >80%\n- PLAN.md lists TF-E2 tasks with checkboxes\n\nEDGE CASES:\n- Integration tests use testcontainers Redis or fakeredis\n- Email tests use mock, never send real email in CI\n- File upload tests use in-memory storage driver",
+      "Labels": "testing,docs,mvp2",
+      "Parent": "TF-E2"
+    }
+  ]
+}

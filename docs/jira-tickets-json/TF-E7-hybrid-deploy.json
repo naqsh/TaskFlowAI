@@ -1,0 +1,60 @@
+{
+  "TF-E7": [
+    {
+      "Issue id": "TF-E7",
+      "Summary": "Option A: Hybrid Deploy — Vercel Frontend + Docker Backend E2E",
+      "Issue Type": "Epic",
+      "Description": "Complete hybrid deployment: Vercel-hosted Next.js frontend, Docker backend on GHCR with nginx + supervisord + FastAPI + Redis + stdio MCP, Supabase production wiring, and end-to-end verification across environments.\n\nSCOPE:\n- Production Dockerfile for backend-only image (frontend on Vercel)\n- nginx TLS termination and API reverse proxy for Docker backend\n- supervisord: fastapi, redis-sidecar or external Redis, mcp-postgres stdio\n- Vercel project config with NEXT_PUBLIC_API_URL\n- docker-compose local parity stack\n- E2E: Vercel FE → Docker BE → Supabase → MCP stdio\n\nEFFORT: M (30 hours)\nPROJECT AREA: Infrastructure\nDEPENDENCIES: TF-E1 minimum; ideally TF-E3 for MCP E2E\n\nEPIC LINK: epic/taskflow-implementation\nFEATURE BRANCH: epic/TF-E7-hybrid-deploy\n\nREFERENCE DOCS:\n- docs/TaskFlowAI_Project_Proposal.md (§ Deployment Strategy)\n- docs/guidance/docker-setup.md (when created)\n- docs/guidance/supabase-setup.md (when created)\n\nSUCCESS CRITERIA:\n- Frontend live on Vercel; backend on GHCR accessible via HTTPS\n- Local docker-compose mirrors production backend topology\n- E2E: login on Vercel → CRUD tasks → AI parse-task (if MVP 3 done)\n- MCP stdio PostgreSQL returns tasks in containerized backend",
+      "Labels": "option-a,hybrid,vercel,docker,deploy",
+      "Parent": ""
+    },
+    {
+      "Issue id": "TF-063",
+      "Summary": "Production Dockerfile (Backend-Only)",
+      "Issue Type": "Task",
+      "Description": "Create multi-stage Dockerfile for FastAPI backend, nginx, supervisord — frontend deploys separately to Vercel.\n\nUSE CASES:\n- CI builds backend image pushed to GHCR\n- Container runs FastAPI on 8010 internally, nginx on 80/443 externally\n- Image includes Node.js 22 for npx MCP stdio servers\n\nIMPLEMENTATION DETAILS:\n- Update infrastructure/Dockerfile from TF-012 scaffold\n- Stage 1: python:3.12-slim, uv sync --frozen, copy backend/, alembic/\n- Stage 2: production — install nginx, supervisor, nodejs 22\n- COPY nginx.conf, supervisord.conf\n- EXPOSE 80; CMD supervisord\n- Non-root user where possible\n- Document in docs/guidance/docker-setup.md\n\nEFFORT: M (4 hours)\nPROJECT AREA: Infrastructure\nDEPENDENCIES: TF-012\n\nTESTING CRITERIA:\n- docker build -f infrastructure/Dockerfile succeeds\n- Container /health returns 200 via nginx\n- Image size documented <1GB target\n\nEDGE CASES:\n- alembic.ini copied for migration job sidecar pattern\n- .dockerignore excludes frontend/node_modules and .venv\n- Python slim lacks gcc: use wheels only",
+      "Labels": "docker,infrastructure,option-a",
+      "Parent": "TF-E7"
+    },
+    {
+      "Issue id": "TF-064",
+      "Summary": "Nginx and Supervisord Production Config",
+      "Issue Type": "Task",
+      "Description": "Configure nginx reverse proxy and supervisord for FastAPI, MCP, and optional Redis in production container.\n\nUSE CASES:\n- External HTTPS terminates at nginx → /api/* proxied to FastAPI\n- supervisord restarts crashed FastAPI or MCP processes\n- /health and /metrics accessible for load balancer probes\n\nIMPLEMENTATION DETAILS:\n- Create infrastructure/nginx.conf: proxy_pass http://127.0.0.1:8010 for /api/, /health, /metrics\n- proxy_read_timeout 120s for AI endpoints\n- Create infrastructure/supervisord.conf:\n  - [program:nginx] priority=10\n  - [program:fastapi] uv run uvicorn backend.main:app --host 0.0.0.0 --port 8010\n  - [program:mcp-postgres] npx @modelcontextprotocol/server-postgres (stdio managed by FastAPI spawn OR separate — document pattern)\n- TLS: document cert mount for prod; self-signed for local\n\nEFFORT: M (4 hours)\nPROJECT AREA: Infrastructure\nDEPENDENCIES: TF-063\n\nTESTING CRITERIA:\n- All supervisord programs stay running 5 min soak test\n- nginx proxies API without 502\n- WebSocket headers if needed for future\n\nEDGE CASES:\n- MCP stdio: spawn per-request from FastAPI vs supervisord persistent — use per-request spawn per daily-briefing pattern\n- Port conflict: nginx 80 only external\n- Log rotation: stdout to docker logs",
+      "Labels": "nginx,supervisor,infrastructure,option-a",
+      "Parent": "TF-E7"
+    },
+    {
+      "Issue id": "TF-065",
+      "Summary": "docker-compose Local Hybrid Stack",
+      "Issue Type": "Task",
+      "Description": "Create docker-compose.yml for local backend + Redis with env parity to production.\n\nUSE CASES:\n- Developer runs docker-compose up for full backend locally while frontend on npm run dev\n- NEXT_PUBLIC_API_URL=http://localhost/api/v1 points to compose nginx\n- Redis available for rate limit and session tests\n\nIMPLEMENTATION DETAILS:\n- infrastructure/docker-compose.yml: services app (build Dockerfile), redis\n- env_file: .env; ports 80:80, 6379:6379 optional\n- healthcheck on /health\n- volumes: none for prod parity (optional mount for dev hot reload documented separately)\n- Document try-it-locally.md workflow: terminal 1 compose, terminal 2 frontend dev\n\nEFFORT: S (2 hours)\nPROJECT AREA: Infrastructure\nDEPENDENCIES: TF-064\n\nTESTING CRITERIA:\n- docker-compose up healthy within 90s\n- Frontend dev server CRUD against localhost API works\n- Redis ping from FastAPI container succeeds\n\nEDGE CASES:\n- Port 80 in use: document COMPOSE_PORT=8080 override\n- .env missing: compose fails with clear message\n- Apple Silicon: platform linux/amd64 if needed",
+      "Labels": "docker,local-dev,option-a",
+      "Parent": "TF-E7"
+    },
+    {
+      "Issue id": "TF-066",
+      "Summary": "Vercel Frontend Deployment Configuration",
+      "Issue Type": "Task",
+      "Description": "Configure Vercel project for Next.js 16 frontend with production API URL and CORS alignment.\n\nUSE CASES:\n- Push to main deploys frontend to Vercel preview/production\n- NEXT_PUBLIC_API_URL points to Docker backend HTTPS URL\n- CORS on backend allows Vercel preview URLs\n\nIMPLEMENTATION DETAILS:\n- vercel.json: framework nextjs, env vars documentation\n- Backend CORS: allow VERCEL_URL pattern and production domain\n- Create docs/guidance/vercel-setup.md: project link, env vars, domain config\n- GitHub integration for preview deployments per PR\n- Security headers on Vercel: CSP, X-Frame-Options\n\nEFFORT: M (4 hours)\nPROJECT AREA: Frontend, Infrastructure\nDEPENDENCIES: TF-004, TF-003\n\nTESTING CRITERIA:\n- Vercel preview build succeeds\n- Production API call from Vercel domain succeeds (CORS)\n- Environment variables set in Vercel dashboard documented\n\nEDGE CASES:\n- Preview URL wildcard CORS: restrict to *.vercel.app pattern\n- API URL http vs https: enforce https in production\n- Server Components fetching API: use server-side env not exposed secret",
+      "Labels": "vercel,frontend,deploy,option-a",
+      "Parent": "TF-E7"
+    },
+    {
+      "Issue id": "TF-067",
+      "Summary": "PostgreSQL MCP stdio and Supervisord Integration",
+      "Issue Type": "Task",
+      "Description": "Wire stdio PostgreSQL MCP for production Docker with Supabase connection.\n\nUSE CASES:\n- Context Agent in Docker container reads tasks via stdio MCP\n- MCP_TRANSPORT=stdio in production .env\n- Supavisor :6543 connection with statement_cache_size=0\n\nIMPLEMENTATION DETAILS:\n- Finalize backend/mcp/postgres_stdio.py from TF-023 for container env\n- supervisord or FastAPI subprocess spawn npx @modelcontextprotocol/server-postgres\n- Env: MCP_POSTGRES_URL, DATABASE_URL, MCP_TRANSPORT=stdio\n- Node 22 in Dockerfile for npx\n- Update docs/MCP.md with TaskFlow tool allowlist\n- SSL/TLS to Supabase documented\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend, Infrastructure\nDEPENDENCIES: TF-023, TF-063\n\nTESTING CRITERIA:\n- Context agent success in container against Supabase seeded data\n- MCP_TRANSPORT=http mock still works in unit tests\n- Connection string special chars handled\n\nEDGE CASES:\n- npx cold start 5-10s: acceptable, log warning\n- Supabase pooler: prepared statement cache disabled\n- MCP crash mid-request: escalate mcp_timeout",
+      "Labels": "mcp,postgres,option-a",
+      "Parent": "TF-E7"
+    },
+    {
+      "Issue id": "TF-068",
+      "Summary": "Hybrid E2E Verification and Documentation",
+      "Issue Type": "Task",
+      "Description": "End-to-end verification of Vercel + Docker + Supabase stack and complete setup guides.\n\nUSE CASES:\n- New developer follows docs/guidance/docker-setup.md and has working hybrid stack in <1 hour\n- E2E test: Vercel FE login → create task → AI suggest priority (if MVP 3)\n- Portfolio demo URL documented in README\n\nIMPLEMENTATION DETAILS:\n- Create docs/guidance/docker-setup.md, update try-it-locally.md, supabase-setup.md\n- E2E script: scripts/e2e_hybrid.sh or pytest e2e marker against staging URLs\n- Verify CORS, auth cookies/cross-origin, trace_id end-to-end\n- Update docs/PLAN.md TF-E7 complete\n- README deployment section with architecture diagram\n\nEFFORT: M (5 hours)\nPROJECT AREA: Testing, Documentation\nDEPENDENCIES: TF-063, TF-064, TF-065, TF-066, TF-067\n\nTESTING CRITERIA:\n- E2E script exits 0 against staging\n- All guidance docs non-empty with copy-paste commands\n- README links Vercel + backend URLs\n\nEDGE CASES:\n- E2E without Vercel: test FE locally against Docker BE still passes\n- Staging credentials in GitHub secrets only\n- AI E2E skipped if MVP 3 not merged: CRUD-only E2E still required",
+      "Labels": "e2e,docs,option-a",
+      "Parent": "TF-E7"
+    }
+  ]
+}
