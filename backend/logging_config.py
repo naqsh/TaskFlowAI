@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import sys
-from collections.abc import Iterator, MutableMapping
+from collections.abc import MutableMapping
 from typing import Any
 from uuid import uuid4
 
