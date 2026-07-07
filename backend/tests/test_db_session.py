@@ -3,6 +3,12 @@
 from backend.db.session import prepare_database_url
 
 
+def test_prepare_database_url_normalizes_postgresql_scheme() -> None:
+    url = "postgresql://user:pass@localhost:5432/taskflow"
+    clean_url, _ = prepare_database_url(url)
+    assert clean_url.startswith("postgresql+asyncpg://")
+
+
 def test_prepare_database_url_strips_sslmode_and_sets_ssl_require() -> None:
     url = "postgresql+asyncpg://user:pass@db.example.supabase.co:6543/postgres?sslmode=require"
     clean_url, connect_args = prepare_database_url(url)

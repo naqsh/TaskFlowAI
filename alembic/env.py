@@ -5,13 +5,13 @@ from __future__ import annotations
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
-from backend.db.base import Base
+from alembic import context
 from backend.db import models as _models  # noqa: F401 — register ORM metadata
+from backend.db.base import Base
 from backend.db.session import prepare_database_url
 from backend.settings import Settings
 
@@ -52,13 +52,11 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    configuration = config.get_section(config.config_ini_section) or {}
-    configuration["sqlalchemy.url"] = get_url()
-    connectable = async_engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
+    url, connect_args = prepare_database_url(Settings().database_url)
+    connectable = create_async_engine(
+        url,
         poolclass=pool.NullPool,
-        connect_args=get_connect_args(),
+        connect_args=connect_args,
     )
 
     async with connectable.connect() as connection:

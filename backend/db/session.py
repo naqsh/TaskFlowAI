@@ -26,6 +26,11 @@ def prepare_database_url(database_url: str) -> tuple[str, dict[str, Any]]:
     Supavisor (port 6543) requires ``statement_cache_size=0`` for asyncpg.
     Passwords with special characters must be percent-encoded in ``DATABASE_URL``.
     """
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    elif database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+
     parsed = urlparse(database_url)
     query = dict(parse_qsl(parsed.query))
     connect_args: dict[str, Any] = {}
@@ -34,6 +39,7 @@ def prepare_database_url(database_url: str) -> tuple[str, dict[str, Any]]:
         connect_args["ssl"] = "require"
     if "supabase.com" in parsed.netloc or parsed.port == 6543:
         connect_args["statement_cache_size"] = 0
+        connect_args.setdefault("ssl", "require")
     clean = parsed._replace(query=urlencode(query))
     return urlunparse(clean), connect_args
 
