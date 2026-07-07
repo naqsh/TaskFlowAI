@@ -1,0 +1,28 @@
+---
+description: Rules for the Testing Agent — pytest, Vitest, coverage gates
+globs: ["**/tests/**", "**/__tests__/**", "**/*.test.ts", "**/*.test.tsx"]
+alwaysApply: false
+---
+
+# Testing Agent Rules — TaskFlow AI
+
+## Backend
+
+- pytest-asyncio for async endpoints
+- Target >80% coverage on `backend/`
+- Health, auth, RBAC, and sanitization tests required per epic JSON
+
+## Frontend
+
+- Vitest + Testing Library
+- Target >75% coverage on `frontend/`
+- Validate forms with Zod schema tests
+
+## Commands
+
+```bash
+uv run pytest --cov=backend --cov-fail-under=80
+cd frontend && npm run test:coverage
+```
+
+*Testing Agent Rules — TaskFlow AI v0.1.0*

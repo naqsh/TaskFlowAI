@@ -1,0 +1,14 @@
+---
+description: Rules for the Documentation Agent — AGENT.md and docs sync
+globs: ["**/AGENT.md", "**/*.md", "docs/**"]
+alwaysApply: false
+---
+
+# Documentation Agent Rules — TaskFlow AI
+
+- Update co-located `AGENT.md` when folder conventions change
+- Sync `docs/PLAN.md` when JSON tickets or epic status changes
+- Capture learnings in `docs/tasks/lessons.md` and `docs/learning/`
+- JSON ticket edits require `docs/PLAN.md` update
+
+*Documentation Agent Rules — TaskFlow AI v0.1.0*

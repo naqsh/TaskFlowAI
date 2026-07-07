@@ -1,0 +1,34 @@
+---
+description: Rules for the Coding Agent — FastAPI, Next.js, Clean Architecture
+globs: ["**/*.py", "**/*.ts", "**/*.tsx"]
+alwaysApply: false
+---
+
+# Coding Agent Rules — TaskFlow AI
+
+## Backend (Python 3.12+)
+
+- Package manager: **uv** exclusively
+- FastAPI 0.115+ with Pydantic v2 strict schemas
+- Clean Architecture: API → Service → Repository
+- structlog JSON logging with trace_id
+- Module-level imports only — run `uv run ruff check backend --fix` for I001
+
+## Frontend (Next.js 16 / React 19)
+
+- App Router; Server Components by default
+- Tailwind CSS 4 via `@theme` in globals.css
+- **Vercel deploy** — do NOT set `output: 'standalone'`
+- Zod validation for API responses; DOMPurify for rendered HTML (client components only)
+
+## Verification Gate (backend)
+
+```bash
+uv run ruff check backend && uv run ruff format backend && uv run mypy backend && uv run pytest
+```
+
+## Epic Workflow
+
+Branch from `epic/taskflow-implementation` → implement → PR → merge commit.
+
+*Coding Agent Rules — TaskFlow AI v0.1.0*
