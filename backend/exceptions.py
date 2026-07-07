@@ -47,3 +47,8 @@ class ForbiddenError(AppException):
 class ConflictError(AppException):
     status_code = 409
     error_code = "conflict"
+
+
+class RateLimitError(AppException):
+    status_code = 429
+    error_code = "rate_limit_exceeded"

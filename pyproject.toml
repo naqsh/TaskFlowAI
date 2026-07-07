@@ -7,7 +7,7 @@ license = "MIT"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115.0",
-    "pydantic>=2.8.0",
+    "pydantic[email]>=2.8.0",
     "pydantic-settings>=2.6.0",
     "uvicorn[standard]>=0.32.0",
     "structlog>=24.4.0",
@@ -20,8 +20,8 @@ dependencies = [
     "asyncpg>=0.31.0",
     "sqlalchemy[asyncio]>=2.0",
     "alembic>=1.18.4",
+    "bcrypt>=4.0.0",
     "python-jose[cryptography]>=3.3.0",
-    "passlib[bcrypt]>=1.7.4",
     "redis>=5.2.0",
 ]
 
@@ -77,7 +77,7 @@ warn_unused_configs = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["opentelemetry.*", "passlib.*", "jose.*"]
+module = ["opentelemetry.*", "bcrypt.*", "jose.*"]
 ignore_missing_imports = true
 
 [dependency-groups]

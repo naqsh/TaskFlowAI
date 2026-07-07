@@ -49,7 +49,7 @@ class TaskPriority(StrEnum):
 
 
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
-    """Application user (credentials managed in TF-006)."""
+    """Application user with local credentials (Supabase PostgreSQL persistence)."""
 
     __tablename__ = "users"
 
@@ -62,6 +62,33 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    refresh_tokens: Mapped[list[RefreshToken]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+
+class RefreshToken(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Server-side refresh token store with rotation support."""
+
+    __tablename__ = "refresh_tokens"
+
+    user_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True, index=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    replaced_by_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("refresh_tokens.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    user: Mapped[User] = relationship(back_populates="refresh_tokens")
 
 
 class Workspace(Base, UUIDPrimaryKeyMixin, TimestampMixin):

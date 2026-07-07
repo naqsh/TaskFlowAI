@@ -1,3 +1,11 @@
+import {
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+  storeTokens,
+  type TokenResponse,
+} from "@/lib/auth";
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -14,11 +22,11 @@ export function getApiBase(): string {
 }
 
 export function getAuthToken(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-  return localStorage.getItem("taskflow_access_token");
+  return getAccessToken();
 }
+
+export { clearTokens, getRefreshToken, storeTokens };
+export type { TokenResponse };
 
 export async function apiFetch<T>(
   path: string,
