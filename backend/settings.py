@@ -28,6 +28,10 @@ class Settings(BaseSettings):
         default="dev-only-jwt-secret-change-in-production-0123456789abcdef",
         min_length=32,
     )
+    jwt_access_token_expire_minutes: int = 15
+    jwt_refresh_token_expire_days: int = 7
+    auth_login_rate_limit: int = 10
+    auth_login_rate_window_seconds: int = 60
 
     redis_url: str = "redis://localhost:6379/0"
     otel_exporter_otlp_endpoint: str = "http://localhost:4317"

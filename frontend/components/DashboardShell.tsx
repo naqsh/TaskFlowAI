@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { ApiError, fetchHealth, getApiBase } from "@/lib/api";
@@ -55,16 +56,32 @@ export function DashboardShell() {
             Dashboard
           </h1>
           <p className="mt-2 max-w-xl text-base text-zinc-600 dark:text-zinc-400">
-            Enterprise task management — MVP 1 scaffold. Auth, projects, and tasks
-            ship in upcoming TF-E1 tasks.
+            Enterprise task management — MVP 1. Auth is live; projects and tasks ship in
+            TF-008+.
           </p>
         </div>
-        <span
-          className="rounded-full border border-black/10 px-3 py-1 text-xs font-medium dark:border-white/15"
-          aria-live="polite"
-        >
-          v0.1.0 scaffold
-        </span>
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/login"
+              className="rounded-lg border border-black/10 px-3 py-1.5 text-sm font-medium hover:bg-black/5 dark:border-white/15 dark:hover:bg-white/5"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/register"
+              className="rounded-lg bg-taskflow-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-taskflow-primary/90"
+            >
+              Register
+            </Link>
+          </div>
+          <span
+            className="rounded-full border border-black/10 px-3 py-1 text-xs font-medium dark:border-white/15"
+            aria-live="polite"
+          >
+            v0.1.0 scaffold
+          </span>
+        </div>
       </header>
 
       {isUnconfigured ? (
@@ -110,7 +127,7 @@ export function DashboardShell() {
           <li>
             Configure <code className="font-mono">NEXT_PUBLIC_API_URL</code> and refresh
           </li>
-          <li>Continue TF-005 (Supabase) through TF-010 (dashboard UI)</li>
+          <li>Continue TF-007 (RBAC) through TF-010 (dashboard UI)</li>
         </ol>
       </section>
     </main>

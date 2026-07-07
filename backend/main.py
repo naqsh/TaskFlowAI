@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from prometheus_client import make_asgi_app
 
 from backend.api.v1.router import router as api_v1_router
+from backend.db.session import dispose_engine, init_engine
 from backend.exceptions import AppException
 from backend.logging_config import bind_trace_id, configure_logging, get_logger
 from backend.metrics import API_REQUEST_DURATION_SECONDS, HTTP_REQUESTS_TOTAL
@@ -22,12 +23,16 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Application lifespan — configure logging and telemetry on startup."""
+    """Application lifespan — configure logging, telemetry, and database on startup."""
     settings = get_settings()
     configure_logging(debug=settings.app_debug)
     configure_telemetry(settings)
+    if "asyncpg" in settings.database_url:
+        init_engine(settings)
     logger.info("application_started", app_env=settings.app_env, version=settings.app_version)
     yield
+    if "asyncpg" in settings.database_url:
+        await dispose_engine()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
