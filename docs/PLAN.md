@@ -12,7 +12,7 @@ Progress tracker for all epics. Sync when JSON tickets or completion status chan
 
 | Epic | Summary | Branch | Status |
 |---|---|---|---|
-| TF-E1 | MVP 1: Foundation — Auth, RBAC, CRUD, Docs Scaffold | `epic/TF-E1-foundation` | 🔄 Scaffold done — TF-005+ next |
+| TF-E1 | MVP 1: Foundation — Auth, RBAC, CRUD, Docs Scaffold | `epic/TF-E1-foundation` | 🔄 TF-005 done — TF-006 next |
 | TF-E2 | MVP 2: Collaboration | `epic/TF-E2-collaboration` | Planned |
 | TF-E3 | MVP 3: AI Intelligence (part 1 + 2) | `epic/TF-E3-ai-intelligence` | Planned |
 | TF-E4 | MVP 4: Security Layer 1 | `epic/TF-E4-security-layer1` | Planned |
@@ -30,7 +30,7 @@ Progress tracker for all epics. Sync when JSON tickets or completion status chan
 | TF-002 | Docs Scaffold and EXECUTION-RULES.md | ✅ Done |
 | TF-003 | FastAPI Backend Scaffold | ✅ Done |
 | TF-004 | Next.js Frontend Scaffold (Vercel-Ready) | ✅ Done |
-| TF-005 | Supabase Async SQLAlchemy and Alembic | Planned |
+| TF-005 | Supabase Async SQLAlchemy and Alembic | ✅ Done |
 | TF-006 | Authentication JWT and Supabase Auth | Planned |
 | TF-007 | RBAC and ABAC Enforcement | Planned |
 | TF-008 | Projects and Tasks CRUD API | Planned |

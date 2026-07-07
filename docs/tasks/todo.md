@@ -3,7 +3,7 @@
 **Epic:** TF-E1 — MVP 1 Foundation  
 **Branch:** `epic/TF-E1-foundation` (from `epic/taskflow-implementation`)  
 **Ticket file:** `docs/jira-tickets-json/TF-E1-mvp1-foundation.json`  
-**Status:** Scaffold phase complete — ready for TF-005+
+**Status:** TF-005 complete — TF-006 next
 
 ---
 
@@ -17,9 +17,26 @@
 
 ---
 
+## Completed (TF-005)
+
+- [x] TF-005 — Supabase async SQLAlchemy + Alembic + RLS schema
+  - `backend/db/` — session, models (7 tables), Supavisor `statement_cache_size=0`
+  - `alembic/versions/001_initial_schema.py` — upgrade/downgrade
+  - `backend/repositories/` — `AsyncRepository`, `TaskRepository`
+  - `docs/guidance/supabase-setup.md` — RLS policy examples
+  - Integration tests gated on `TEST_DATABASE_URL`
+
+---
+
+## Git
+
+- [x] `epic/taskflow-implementation` created and pushed from `main`
+- [x] `epic/TF-E1-foundation` rebased onto integration branch
+
+---
+
 ## Next Up
 
-- [ ] TF-005 — Supabase async SQLAlchemy + Alembic + RLS schema
 - [ ] TF-006 — JWT auth + Supabase Auth
 - [ ] TF-007 — RBAC/ABAC
 - [ ] TF-008 — Projects and Tasks CRUD
@@ -38,4 +55,4 @@ cd frontend && npm run lint && npm run build
 
 ---
 
-*Updated: July 2026 — scaffold complete*
+*Updated: July 2026 — TF-005 complete*

@@ -47,6 +47,9 @@ packages = ["backend"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["backend/tests"]
+markers = [
+    "integration: database integration tests requiring TEST_DATABASE_URL",
+]
 
 [tool.coverage.run]
 source = ["backend"]
