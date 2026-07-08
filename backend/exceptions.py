@@ -52,3 +52,13 @@ class ConflictError(AppException):
 class RateLimitError(AppException):
     status_code = 429
     error_code = "rate_limit_exceeded"
+
+
+class UnsupportedMediaTypeError(AppException):
+    status_code = 415
+    error_code = "unsupported_media_type"
+
+
+class PayloadTooLargeError(AppException):
+    status_code = 413
+    error_code = "payload_too_large"

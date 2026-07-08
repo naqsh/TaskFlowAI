@@ -13,6 +13,8 @@
  import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
  import { Select } from "@/components/ui/select";
  import { createTask, type Task, type TaskPriority } from "@/lib/tasks";
+import type { AITaskDraft } from "@/lib/ai";
+import { AITaskCreator } from "@/components/AITaskCreator";
 
  const EMPTY_UUID = "00000000-0000-0000-0000-000000000000";
 
@@ -56,6 +58,7 @@
    const router = useRouter();
 
    const [submitError, setSubmitError] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
 
    const form = useForm<TaskCreateForm>({
      resolver: zodResolver(taskCreateSchema),
@@ -132,6 +135,13 @@
        },
      });
    }
+
+  function onApplyAIDraft(draft: AITaskDraft) {
+    form.setValue("title", draft.title);
+    form.setValue("priority", draft.priority);
+    form.setValue("due_date", draft.due_date ?? "");
+    setAiOpen(false);
+  }
 
    return (
      <Dialog open={open} onOpenChange={onOpenChange}>
@@ -213,6 +223,14 @@
            ) : null}
 
            <div className="flex gap-3 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setAiOpen(true)}
+              disabled={createMutation.isPending}
+            >
+              Create with AI
+            </Button>
              <Button type="submit" disabled={createMutation.isPending}>
                {createMutation.isPending ? "Creating…" : "Create task"}
              </Button>
@@ -222,6 +240,12 @@
            </div>
          </form>
        </DialogContent>
+
+      <AITaskCreator
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        onApplyDraft={onApplyAIDraft}
+      />
      </Dialog>
    );
  }

@@ -15,6 +15,8 @@ Format: **Date | Mistake Pattern | Root Cause | Rule to Prevent Recurrence**
 
 | Date | Mistake Pattern | Root Cause | Rule |
 |---|---|---|---|
+| 2026-07-08 | Marking epic complete without ticket tests | Part 2 scaffold existed and todo was checked off before TF-031..040 testing criteria existed | Never mark TF-* done until ticket TESTING CRITERIA have dedicated tests; treat existing checkboxes as provisional until proof |
+| 2026-07-08 | AIResponse Zod mismatch (optional keys omitted) | Orchestrator only emitted present fields (`task_draft` absent vs `null`) | Always emit stable schema keys (`null` placeholders) for API/FE contracts |
 | — | — | — | API → Service → Repository; no SQL in handlers |
 
 ## Testing
@@ -22,6 +24,7 @@ Format: **Date | Mistake Pattern | Root Cause | Rule to Prevent Recurrence**
 | Date | Mistake Pattern | Root Cause | Rule |
 |---|---|---|---|
 | 2026-07-08 | Lint/type violations after refactor | Added new telemetry helper without return type annotation and introduced an overlong line failing ruff E501 | Run `uv run ruff check backend --fix` and `uv run mypy backend` immediately after refactors; only then proceed |
+| 2026-07-08 | Frontend auto-applied AI draft without preview confirm | Initial AITaskCreator applied draft on generate, skipping TF-040 preview→confirm flow | Keep AI draft in preview state until explicit “Use draft” |
 | — | — | — | Run full backend verification gate before marking backend tasks done |
 
 ## Workflow

@@ -15,6 +15,7 @@ from backend.db.session import dispose_engine, init_engine
 from backend.exceptions import AppException
 from backend.logging_config import bind_trace_id, configure_logging, get_logger
 from backend.metrics import API_REQUEST_DURATION_SECONDS, HTTP_REQUESTS_TOTAL
+from backend.rate_limit_middleware import rate_limit_middleware
 from backend.settings import Settings, get_settings
 from backend.telemetry import configure_telemetry, get_tracer
 
@@ -108,6 +109,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             except Exception:
                 pass
             return response
+
+    # Collaboration endpoints use redis-backed rate limiting (TF-018).
+    app.middleware("http")(rate_limit_middleware)
 
     @app.exception_handler(AppException)
     async def app_exception_handler(_request: Request, exc: AppException) -> JSONResponse:
