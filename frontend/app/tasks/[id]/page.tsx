@@ -9,6 +9,8 @@
  import { CommentThread } from "@/components/CommentThread";
  import { useMe } from "@/hooks/useMe";
  import { useTask } from "@/hooks/useTask";
+import { AttachmentsPanel } from "@/components/AttachmentsPanel";
+import { ActivityTimeline } from "@/components/ActivityTimeline";
 
  export default function TaskPage({ params }: { params: { id: string } }) {
    const router = useRouter();
@@ -51,34 +53,46 @@
        ) : null}
 
        {task ? (
-         <section className="rounded-2xl border border-black/10 p-6 dark:border-white/10">
-           <h1 className="text-2xl font-semibold">{task.title}</h1>
-           {task.description ? (
-             <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">{task.description}</p>
-           ) : null}
+        <div className="mt-6 grid gap-6 md:grid-cols-[2fr,1fr]">
+          <div>
+            <section className="rounded-2xl border border-black/10 p-6 dark:border-white/10">
+              <h1 className="text-2xl font-semibold">{task.title}</h1>
+              {task.description ? (
+                <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
+                  {task.description}
+                </p>
+              ) : null}
 
-           <div className="mt-4 flex flex-wrap gap-2">
-             <Badge variant="default">Status: {task.status}</Badge>
-             <Badge variant="secondary">Priority: {task.priority}</Badge>
-             <Badge variant="secondary">
-               Due: {task.due_date ? task.due_date : "—"}
-             </Badge>
-           </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Badge variant="default">Status: {task.status}</Badge>
+                <Badge variant="secondary">Priority: {task.priority}</Badge>
+                <Badge variant="secondary">
+                  Due: {task.due_date ? task.due_date : "—"}
+                </Badge>
+              </div>
 
-           {task.warnings.length > 0 ? (
-             <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
-               {task.warnings.map((w) => (
-                 <div key={w}>{w}</div>
-               ))}
-             </div>
-           ) : null}
-         </section>
-       ) : null}
+              {task.warnings.length > 0 ? (
+                <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+                  {task.warnings.map((w) => (
+                    <div key={w}>{w}</div>
+                  ))}
+                </div>
+              ) : null}
+            </section>
 
-       {task ? (
-         <div className="mt-8">
-           <CommentThread taskId={task.id} currentUserId={me?.id ?? null} />
-         </div>
+            <div className="mt-6">
+              <AttachmentsPanel taskId={task.id} />
+            </div>
+
+            <div className="mt-8">
+              <CommentThread taskId={task.id} currentUserId={me?.id ?? null} />
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <ActivityTimeline taskId={task.id} />
+          </div>
+        </div>
        ) : null}
      </main>
    );

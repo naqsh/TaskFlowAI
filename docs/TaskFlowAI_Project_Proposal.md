@@ -422,9 +422,9 @@ All agents return `AgentResultEnvelope`:
 
 | Milestone | Scope Summary | Security / Ops | Status |
 |---|---|---|---|
-| **MVP 1 — Foundation** | Auth, RBAC, Projects, Tasks, Comments, Dashboard, API v1, Alembic, RLS, `AGENT.md` scaffold, `docs/` tree | JWT, ABAC, audit logs, OpenTelemetry baseline, spotlighting utils | Planned |
-| **MVP 2 — Collaboration** | Notifications, attachments, search/filters, activity timeline, email | File validation, SSRF allowlists, signed URLs, rate limiting | Planned |
-| **MVP 3 — AI Intelligence** | NL task creation, AI summaries, priority suggestions, LangGraph, 6 agents, MCP, memory foundation, prompt caching | Multi-agent pipeline, InputSecurityScanner, prompt packs (11-file), consent modal | Planned |
+| **MVP 1 — Foundation** | Auth, RBAC, Projects, Tasks, Comments, Dashboard, API v1, Alembic, RLS, `AGENT.md` scaffold, `docs/` tree | JWT, ABAC, audit logs, OpenTelemetry baseline, spotlighting utils | ✅ Complete |
+| **MVP 2 — Collaboration** | Notifications, attachments, search/filters, activity timeline, email | File validation, SSRF allowlists, signed URLs, rate limiting | ✅ Complete |
+| **MVP 3 — AI Intelligence** | NL task creation, AI summaries, priority suggestions, LangGraph, 6 agents, MCP, memory foundation, prompt caching | Multi-agent pipeline, InputSecurityScanner, prompt packs (11-file), consent modal | 🔄 In progress (Part 1 complete) |
 | **MVP 4 — Security Layer 1** | Spotlighting enforcement, tool poisoning defense, DLQ, observability (Dwell Time SLO) | MCP validator, constitutional rules, security monitor baseline | Planned |
 | **MVP 5 — Identity & Credentials** | Agentic consent, JIT credentials, confused deputy prevention, local LLM fallback | Delegation tokens, credential broker, NHI registry | Planned |
 | **MVP 6 — Production** | AI-BOM, OpenSSF, MITRE mapping, cache warming, deployment gates | Cosign signing, governance, emergency procedures | Planned |

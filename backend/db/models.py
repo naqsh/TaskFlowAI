@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
+import sqlalchemy as sa
 from sqlalchemy import (
     Boolean,
     Date,
@@ -234,3 +235,95 @@ class AuditLog(Base, UUIDPrimaryKeyMixin):
         nullable=False,
         default=lambda: datetime.now(UTC),
     )
+
+
+class NotificationType(StrEnum):
+    """In-app notification types."""
+
+    TASK_ASSIGNED = "task.assigned"
+    COMMENT_ADDED = "comment.added"
+    DUE_REMINDER = "task.due_reminder"
+
+
+class Notification(Base, UUIDPrimaryKeyMixin, TimestampMixin, WorkspaceScopedMixin):
+    """In-app notification persisted per user and workspace."""
+
+    __tablename__ = "notifications"
+
+    user_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    type: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    resource_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    resource_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        nullable=True,
+        index=True,
+    )
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Attachment(Base, UUIDPrimaryKeyMixin, TimestampMixin, WorkspaceScopedMixin):
+    """File attachment persisted with metadata; bytes stored in local storage for MVP."""
+
+    __tablename__ = "attachments"
+
+    task_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tasks.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    uploaded_by: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    filename: Mapped[str] = mapped_column(String(500), nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(200), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(sa.BigInteger(), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(1000), nullable=False, index=True)
+
+
+class UserPreference(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Per-user preferences (MVP 2: email notification toggle)."""
+
+    __tablename__ = "user_preferences"
+
+    user_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    email_notifications_enabled: Mapped[bool] = mapped_column(
+        Boolean(),
+        nullable=False,
+        server_default=sa.text("true"),
+        default=True,
+    )
+
+
+class EpisodicEntry(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Episodic memory entries distilled from successful AI runs."""
+
+    __tablename__ = "episodic_entries"
+
+    user_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # `session_id` is typically a composite namespace (user/workspace/session) as a string.
+    session_id: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    lesson_type: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    content: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    version: Mapped[int] = mapped_column(sa.Integer(), nullable=False, default=1)
