@@ -1,15 +1,12 @@
 "use client";
 
 import DOMPurify from "dompurify";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-import {
-  createComment,
-  deleteComment,
-  fetchComments,
-  updateComment,
-  type Comment,
-} from "@/lib/comments";
+import { ApiError } from "@/lib/api";
+import { type Comment } from "@/lib/comments";
+import { useComments } from "@/hooks/useComments";
 
 const SAFE_HTML_CONFIG = {
   ALLOWED_TAGS: ["p", "br", "strong", "em", "code"],
@@ -26,68 +23,85 @@ type CommentThreadProps = {
 };
 
 export function CommentThread({ taskId, currentUserId }: CommentThreadProps) {
-  const [comments, setComments] = useState<Comment[]>([]);
   const [draft, setDraft] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  const loadComments = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const items = await fetchComments(taskId);
-      setComments(items);
-    } catch {
-      setError("Failed to load comments.");
-    } finally {
-      setLoading(false);
-    }
-  }, [taskId]);
+  const router = useRouter();
+  const {
+    comments,
+    isLoading,
+    error: queryError,
+    create,
+    update,
+    remove,
+  } = useComments(taskId, currentUserId);
 
   useEffect(() => {
-    void loadComments();
-  }, [loadComments]);
+    if (!queryError) return;
+    if (queryError instanceof ApiError && queryError.status === 401) {
+      router.push("/login");
+      return;
+    }
+  }, [queryError, router]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!draft.trim()) {
       return;
     }
+    const body = draft.trim();
     setError(null);
-    try {
-      const created = await createComment(taskId, draft.trim());
-      setComments((prev) => [...prev, created]);
-      setDraft("");
-    } catch {
-      setError("Failed to post comment.");
-    }
+    create.mutate(body, {
+      onSuccess: () => {
+        setDraft("");
+      },
+      onError: (err) => {
+        if (err instanceof ApiError && err.status === 401) {
+          router.push("/login");
+          return;
+        }
+        setError("Failed to post comment.");
+      },
+    });
   }
 
   async function handleSaveEdit(commentId: string) {
     if (!editDraft.trim()) {
       return;
     }
+    const body = editDraft.trim();
     setError(null);
-    try {
-      const updated = await updateComment(commentId, editDraft.trim());
-      setComments((prev) => prev.map((c) => (c.id === commentId ? updated : c)));
-      setEditingId(null);
-      setEditDraft("");
-    } catch {
-      setError("Failed to update comment.");
-    }
+    update.mutate(
+      { commentId, body },
+      {
+        onSuccess: () => {
+          setEditingId(null);
+          setEditDraft("");
+        },
+        onError: (err) => {
+          if (err instanceof ApiError && err.status === 401) {
+            router.push("/login");
+            return;
+          }
+          setError("Failed to update comment.");
+        },
+      },
+    );
   }
 
   async function handleDelete(commentId: string) {
     setError(null);
-    try {
-      await deleteComment(commentId);
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
-    } catch {
-      setError("Failed to delete comment.");
-    }
+    remove.mutate(commentId, {
+      onError: (err) => {
+        if (err instanceof ApiError && err.status === 401) {
+          router.push("/login");
+          return;
+        }
+        setError("Failed to delete comment.");
+      },
+    });
   }
 
   function canEdit(comment: Comment): boolean {
@@ -98,10 +112,15 @@ export function CommentThread({ taskId, currentUserId }: CommentThreadProps) {
     <section aria-label="Comment thread" className="space-y-4">
       <h2 className="text-lg font-semibold">Comments</h2>
 
-      {loading ? <p className="text-sm text-zinc-500">Loading comments…</p> : null}
+      {isLoading ? <p className="text-sm text-zinc-500">Loading comments…</p> : null}
       {error ? (
         <p role="alert" className="text-sm text-red-600 dark:text-red-400">
           {error}
+        </p>
+      ) : null}
+      {!error && queryError ? (
+        <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+          Failed to load comments.
         </p>
       ) : null}
 
