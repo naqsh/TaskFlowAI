@@ -78,19 +78,23 @@ class ConstitutionalClassifier:
         if not hasattr(signal, "SIGALRM"):
             return pattern.search(text) is not None
 
+        setitimer = getattr(signal, "setitimer", None)
+        itimer_real = getattr(signal, "ITIMER_REAL", None)
+        alarm = getattr(signal, "alarm", None)
+
         previous = signal.signal(signal.SIGALRM, _alarm_handler)
-        if hasattr(signal, "setitimer"):
-            signal.setitimer(signal.ITIMER_REAL, _RULE_TIMEOUT_SECONDS)  # type: ignore[attr-defined]
-        elif hasattr(signal, "alarm"):
-            signal.alarm(1)  # type: ignore[attr-defined]
+        if callable(setitimer) and itimer_real is not None:
+            setitimer(itimer_real, _RULE_TIMEOUT_SECONDS)
+        elif callable(alarm):
+            alarm(1)
         try:
             return pattern.search(text) is not None
         except _RuleTimeout:
             logger.warning("constitutional_rule_timeout", pattern=pattern.pattern)
             return False
         finally:
-            if hasattr(signal, "setitimer"):
-                signal.setitimer(signal.ITIMER_REAL, 0)  # type: ignore[attr-defined]
-            elif hasattr(signal, "alarm"):
-                signal.alarm(0)  # type: ignore[attr-defined]
+            if callable(setitimer) and itimer_real is not None:
+                setitimer(itimer_real, 0)
+            elif callable(alarm):
+                alarm(0)
             signal.signal(signal.SIGALRM, previous)
