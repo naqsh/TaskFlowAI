@@ -79,7 +79,7 @@ warn_unused_configs = true
 plugins = ["pydantic.mypy"]
 
 [[tool.mypy.overrides]]
-module = ["opentelemetry.*", "bcrypt.*", "jose.*"]
+module = ["opentelemetry.*", "bcrypt.*", "jose.*", "fakeredis.*"]
 ignore_missing_imports = true
 
 [dependency-groups]
