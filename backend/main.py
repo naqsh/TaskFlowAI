@@ -70,9 +70,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # - OTel span context (actual trace_id used by spans)
         incoming_trace_id = request.headers.get("X-Trace-Id")
         trace_id = (
-            incoming_trace_id
-            if incoming_trace_id and len(incoming_trace_id) == 32
-            else uuid4().hex
+            incoming_trace_id if incoming_trace_id and len(incoming_trace_id) == 32 else uuid4().hex
         )
         trace_id = trace_id.lower()
         bind_trace_id(trace_id)

@@ -120,4 +120,3 @@ class AuditService:
                 "audit_log_write_failed",
                 extra={"action": action, "resource_type": resource_type},
             )
-

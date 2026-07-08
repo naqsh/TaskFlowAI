@@ -65,8 +65,7 @@ async def test_trace_span_correlation_matches_x_trace_id() -> None:
         matching = [
             span
             for span in finished
-            if span.name == "http.request"
-            and f"{span.context.trace_id:032x}" == trace_id
+            if span.name == "http.request" and f"{span.context.trace_id:032x}" == trace_id
         ]
         assert matching, "Expected an `http.request` span with the same trace_id as X-Trace-Id"
 
@@ -174,4 +173,3 @@ async def test_task_create_writes_audit_log_with_correct_actor_id(db_client: Asy
         result = await session.execute(stmt)
         entry = result.scalar_one_or_none()
         assert entry is not None
-
