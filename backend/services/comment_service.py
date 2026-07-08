@@ -15,6 +15,7 @@ from backend.repositories.task_repository import TaskRepository
 from backend.schemas.comment import CommentCreate, CommentResponse, CommentUpdate
 from backend.security.abac import Action, PermissionContext, Resource, check_permission
 from backend.security.sanitization import sanitize_comment_body
+from backend.services.audit_service import AuditService
 
 EDIT_WINDOW_MINUTES = 15
 
@@ -26,6 +27,7 @@ class CommentService:
         self._session = session
         self._comments = CommentRepository(session)
         self._tasks = TaskRepository(session)
+        self._audit = AuditService()
 
     def _comment_permission_context(self, comment: Comment) -> PermissionContext:
         return PermissionContext(owner_id=comment.author_id)
@@ -99,6 +101,18 @@ class CommentService:
             body=body,
         )
         persisted = await self._comments.add(comment)
+        await self._audit.log_event(
+            actor_id=ctx.user.id,
+            action="comment.created",
+            resource_type="comment",
+            resource_id=persisted.id,
+            metadata={
+                "workspace_id": str(ctx.workspace_id),
+                "task_id": str(task_id),
+                "comment_id": str(persisted.id),
+            },
+            workspace_id=ctx.workspace_id,
+        )
         return CommentResponse.model_validate(persisted)
 
     async def update_comment(

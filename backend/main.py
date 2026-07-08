@@ -16,7 +16,7 @@ from backend.exceptions import AppException
 from backend.logging_config import bind_trace_id, configure_logging, get_logger
 from backend.metrics import API_REQUEST_DURATION_SECONDS, HTTP_REQUESTS_TOTAL
 from backend.settings import Settings, get_settings
-from backend.telemetry import configure_telemetry
+from backend.telemetry import configure_telemetry, get_tracer
 
 logger = get_logger(__name__)
 
@@ -65,12 +65,51 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.middleware("http")
     async def trace_id_middleware(request: Request, call_next):  # type: ignore[no-untyped-def]
-        trace_id = request.headers.get("X-Trace-Id", uuid4().hex)
+        # Parse or create a 32-hex `trace_id` and propagate it through:
+        # - structlog context (`trace_id`)
+        # - OTel span context (actual trace_id used by spans)
+        incoming_trace_id = request.headers.get("X-Trace-Id")
+        trace_id = (
+            incoming_trace_id
+            if incoming_trace_id and len(incoming_trace_id) == 32
+            else uuid4().hex
+        )
+        trace_id = trace_id.lower()
         bind_trace_id(trace_id)
         request.state.trace_id = trace_id
-        response = await call_next(request)
-        response.headers["X-Trace-Id"] = trace_id
-        return response
+
+        # Start a root span per request so downstream spans/log correlation share the same trace_id.
+        tracer = get_tracer()
+
+        from opentelemetry import trace as otel_trace
+        from opentelemetry.trace import NonRecordingSpan, SpanContext, TraceFlags, TraceState
+
+        parent_span_context = SpanContext(
+            trace_id=int(trace_id, 16),
+            span_id=int(uuid4().hex[:16], 16),
+            is_remote=True,
+            trace_flags=TraceFlags(TraceFlags.SAMPLED),
+            trace_state=TraceState(),
+        )
+        parent_context = otel_trace.set_span_in_context(NonRecordingSpan(parent_span_context))
+
+        with tracer.start_as_current_span(
+            "http.request",
+            context=parent_context,
+            attributes={
+                "http.method": request.method,
+                "http.route": request.url.path,
+            },
+        ):
+            response = await call_next(request)
+            response.headers["X-Trace-Id"] = f"{trace_id}"
+            # Attach status code after the handler completes.
+            try:
+                current_span = otel_trace.get_current_span()
+                current_span.set_attribute("http.status_code", response.status_code)
+            except Exception:
+                pass
+            return response
 
     @app.exception_handler(AppException)
     async def app_exception_handler(_request: Request, exc: AppException) -> JSONResponse:

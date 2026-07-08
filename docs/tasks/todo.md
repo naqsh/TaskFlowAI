@@ -2,7 +2,7 @@
 
 **Epic:** TF-E1 — MVP 1 Foundation  
 **Branch:** `task/TF-010-dashboard-ui`  
-**Status:** TF-010 complete — TF-011 next
+**Status:** TF-010 complete — TF-011 in progress
 
 ---
 
@@ -38,7 +38,7 @@
 
 ## Next Up
 
-- [ ] TF-011 — Audit logs + OpenTelemetry baseline
+- [ ] TF-011 — Audit logs + OpenTelemetry baseline (in progress)
 
 ---
 

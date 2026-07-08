@@ -29,7 +29,7 @@ Source of truth for execution standards and workflow discipline. Applies to all 
    ```
 
 4. **Lessons review** — read `docs/tasks/lessons.md` at session start
-5. **Correction loop** — update `lessons.md` after user corrections
+5. **Correction loop** — if a mistake is made or corrected by a user, update `docs/tasks/lessons.md` immediately
 6. **Done gate** — prove completion with tests, logs, or diffs
 7. **Edge cases** — implement all `EDGE CASES` from JSON ticket descriptions
 8. **Token efficiency** — follow `docs/TOKEN-EFFICIENCY.md` before `docs/KICKOFF-PROMPT.md`
