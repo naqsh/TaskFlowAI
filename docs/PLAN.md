@@ -15,7 +15,7 @@ Progress tracker for all epics. Sync when JSON tickets or completion status chan
 | TF-E1 | MVP 1: Foundation — Auth, RBAC, CRUD, Docs Scaffold | `epic/TF-E1-foundation` | ✅ TF-009+TF-010+TF-011 done |
 | TF-E2 | MVP 2: Collaboration | `epic/TF-E2-collaboration` | ✅ Implemented (TF-013..TF-020) |
 | TF-E3 | MVP 3: AI Intelligence (part 1 + 2) | `epic/TF-E3-ai-intelligence-part2` | ✅ Implemented (TF-031..TF-040) |
-| TF-E4 | MVP 4: Security Layer 1 | `epic/TF-E4-security-layer1` | Planned |
+| TF-E4 | MVP 4: Security Layer 1 | `epic/TF-E4-security-layer1` | ✅ Implemented (TF-041..TF-048) |
 | TF-E5 | MVP 5: Identity & Credentials | `epic/TF-E5-identity-credentials` | Planned |
 | TF-E6 | MVP 6: Production & Supply Chain | `epic/TF-E6-production` | Planned |
 | TF-E7 | Option A: Hybrid Deploy Hardening | `epic/TF-E7-hybrid-deploy` | Planned |
@@ -69,7 +69,24 @@ Progress tracker for all epics. Sync when JSON tickets or completion status chan
 | TF-039 | Prompt caching/token metrics | ✅ Implemented |
 | TF-040 | Frontend AI components + TaskForm integration | ✅ Implemented |
 
-*Proof:* `uv run ruff check backend && uv run mypy backend && uv run pytest` → 115 passed, 26 skipped; `cd frontend && npm test` → 5 passed (2026-07-08).
+*Proof:* `uv run pytest` → 152 passed, 26 skipped; jailbreak corpus 100% block rate (2026-07-08).
+
+---
+
+## TF-E4 Task Progress (MVP 4: Security Layer 1)
+
+| Task | Summary | Status |
+|---|---|---|
+| TF-041 | Full InputSecurityScanner pipeline | ✅ Implemented |
+| TF-042 | MCPResponseValidator 3-layer defense | ✅ Implemented |
+| TF-043 | DLQ persistence + admin API | ✅ Implemented |
+| TF-044 | Dwell time SLO instrumentation | ✅ Implemented |
+| TF-045 | Security Monitor + blast radius | ✅ Implemented |
+| TF-046 | Cryptographic audit log sealing | ✅ Implemented |
+| TF-047 | Constitutional rules.yaml | ✅ Implemented |
+| TF-048 | Integration tests + docs sync | ✅ Implemented |
+
+*Proof:* `proof/mvp4/corpus_block_rate.txt`; `docs/SECURITY.md`; security test suite 41 cases in `backend/tests/security/`; runtime wiring via `backend/graph/post_process.py`.
 
 ---
 

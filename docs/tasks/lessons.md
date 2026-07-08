@@ -8,8 +8,10 @@ Format: **Date | Mistake Pattern | Root Cause | Rule to Prevent Recurrence**
 
 | Date | Mistake Pattern | Root Cause | Rule |
 |---|---|---|---|
+| 2026-07-08 | Epic marked done with scaffold-only integrations | DLQ/quarantine/audit paths existed but were not wired through AI graph hot path | After security epic work, audit runtime call graph — not just file presence and unit tests |
 | 2026-07-08 | Spotlighting marker spec drift | Used a non-canonical end marker string for external content | Keep `EXTERNAL_MARKER_*` constants aligned with spec (`<<<EXTERNAL_CONTENT>>>` … `<<</EXTERNAL_CONTENT>>>`) and rely on tests to catch drift |
-| — | — | — | Check `docs/SECURITY.md` before agent I/O changes (when created) |
+| 2026-07-08 | Epic branch corruption during edit | Accidental partial replace in `graph/builder.py` while adding DLQ gate | After multi-hunk edits to pipeline files, re-read the full function before running tests |
+| — | — | — | Check `docs/SECURITY.md` before agent I/O changes |
 
 ## Architecture
 

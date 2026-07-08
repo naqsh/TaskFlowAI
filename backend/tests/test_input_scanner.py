@@ -23,7 +23,7 @@ def test_input_scanner_blocks_known_jailbreaks(payload: str) -> None:
 
     scan = excinfo.value.scan
     assert scan.is_violation
-    assert scan.layer == "regex"
+    assert scan.layer in ("regex", "ml", "constitutional")
     assert scan.matched_pattern is not None
     assert scan.confidence > 0.5
 

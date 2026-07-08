@@ -31,3 +31,23 @@ increase(cached_tokens_saved_total[1h])
 
 Background `PromptCacheWarmer` is deferred to MVP 6 (TF-058). Until then, cold starts after idle
 are expected; monitor hit rate during active AI usage only.
+
+## Security dwell time SLO (TF-044)
+
+| Metric | Type | Description |
+|---|---|---|
+| `security_dwell_time_seconds` | Histogram | Incident start → detection latency |
+| `blast_radius_score` | Gauge | Per-agent risk score (target <30) |
+| `security_violation_detected_total` | Counter | Blocks by scanner layer |
+| `dlq_entries_total` | Counter | DLQ events by reason |
+| `audit_chain_verification_failures_total` | Counter | Tamper detection failures |
+
+### Grafana alert (dwell time P95)
+
+Rule file: `observability/grafana/security-dwell-time-alert.yaml`
+
+```promql
+histogram_quantile(0.95, sum(rate(security_dwell_time_seconds_bucket[5m])) by (le, incident_type)) > 3600
+```
+
+Target: P95 dwell time < 1 hour (3600s).

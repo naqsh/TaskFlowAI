@@ -230,6 +230,8 @@ class AuditLog(Base, UUIDPrimaryKeyMixin):
     metadata_: Mapped[dict[str, Any]] = mapped_column(
         "metadata", JSONB, nullable=False, default=dict
     )
+    prev_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    entry_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
@@ -327,3 +329,40 @@ class EpisodicEntry(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     lesson_type: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
     content: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
     version: Mapped[int] = mapped_column(sa.Integer(), nullable=False, default=1)
+
+
+class DLQEvent(Base, UUIDPrimaryKeyMixin):
+    """Dead letter queue for failed agent runs and security violations (TF-043)."""
+
+    __tablename__ = "dlq_events"
+
+    request_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False, index=True)
+    user_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True), nullable=True, index=True)
+    workspace_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), nullable=True, index=True
+    )
+    agent_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    reason: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(40), nullable=False, default="pending")
+    envelope_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    retry_count: Mapped[int] = mapped_column(sa.Integer(), nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+
+
+class QuarantinedMcpResponse(Base, UUIDPrimaryKeyMixin):
+    """Quarantined MCP responses for admin review (TF-042)."""
+
+    __tablename__ = "quarantined_mcp_responses"
+
+    tool: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    reason: Mapped[str] = mapped_column(String(100), nullable=False)
+    raw_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )

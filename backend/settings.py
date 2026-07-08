@@ -37,6 +37,15 @@ class Settings(BaseSettings):
     otel_exporter_otlp_endpoint: str = "http://localhost:4317"
     cors_origins: str = "http://localhost:3000"
 
+    # Security Layer 1 (TF-E4)
+    llamafirewall_enabled: bool = True
+    llamafirewall_block_threshold: float = 0.9
+    hf_token: str = ""
+    security_monitor_enabled: bool = True
+    mcp_default_size_threshold: int = 50_000
+    mcp_anomaly_sigma: float = 2.0
+    dlq_max_retries: int = 3
+
     @model_validator(mode="after")
     def validate_production_secrets(self) -> Self:
         insecure_jwt_markers = ("dev-only", "change-in-production")
