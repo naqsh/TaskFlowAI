@@ -2,6 +2,14 @@ import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { CommentThread, sanitizeCommentHtml } from "@/components/CommentThread";
+import { QueryProvider } from "@/components/QueryProvider";
+
+const push = vi.fn();
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push,
+  }),
+}));
 
 vi.mock("@/lib/comments", () => ({
   fetchComments: vi.fn().mockResolvedValue([
@@ -33,10 +41,12 @@ describe("sanitizeCommentHtml", () => {
 describe("CommentThread", () => {
   it("renders sanitized comment bodies without script tags", async () => {
     render(
-      <CommentThread
-        taskId="33333333-3333-4333-8333-333333333333"
-        currentUserId="44444444-4444-4444-8444-444444444444"
-      />,
+      <QueryProvider>
+        <CommentThread
+          taskId="33333333-3333-4333-8333-333333333333"
+          currentUserId="44444444-4444-4444-8444-444444444444"
+        />
+      </QueryProvider>,
     );
 
     expect(await screen.findByText("Safe")).toBeInTheDocument();
