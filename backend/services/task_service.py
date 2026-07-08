@@ -17,6 +17,7 @@ from backend.schemas.task import TaskCreate, TaskResponse, TaskUpdate
 from backend.security.abac import Action, PermissionContext, Resource, check_permission
 from backend.security.sanitization import sanitize_description
 from backend.services.audit_service import AuditService
+from backend.services.notification_service import NotificationService
 
 
 class TaskService:
@@ -28,6 +29,7 @@ class TaskService:
         self._projects = ProjectRepository(session)
         self._members = WorkspaceMemberRepository(session)
         self._audit = AuditService()
+        self._notifications = NotificationService(session)
 
     def _task_permission_context(self, task: Task) -> PermissionContext:
         return PermissionContext(
@@ -170,6 +172,9 @@ class TaskService:
         if payload.assignee_id is not None:
             await self._validate_assignee(ctx, payload.assignee_id)
 
+        previous_assignee_id = task.assignee_id
+        assignee_changed = False
+
         if payload.title is not None:
             task.title = payload.title
         if payload.description is not None:
@@ -191,10 +196,21 @@ class TaskService:
             ):
                 raise ForbiddenError("Permission denied for task assignment")
             task.assignee_id = payload.assignee_id
+            assignee_changed = previous_assignee_id != task.assignee_id
 
         await self._session.flush()
         await self._session.refresh(task)
         warnings = self._due_date_warnings(task.due_date)
+
+        if assignee_changed and task.assignee_id is not None:
+            await self._notifications.notify_task_assigned(
+                actor_id=ctx.user.id,
+                workspace_id=ctx.workspace_id,
+                assignee_id=task.assignee_id,
+                task_id=task.id,
+                task_title=task.title,
+            )
+
         await self._audit.log_event(
             actor_id=ctx.user.id,
             action="task.updated",

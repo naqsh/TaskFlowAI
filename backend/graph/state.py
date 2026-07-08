@@ -1,0 +1,28 @@
+from __future__ import annotations
+
+from typing import Any, Literal, NotRequired, TypedDict
+from uuid import UUID
+
+ConsensusStatus = Literal["pending", "agreement", "escalation", "rejected"]
+
+
+class TaskFlowGraphState(TypedDict, total=False):
+    """LangGraph state for TaskFlow AI multi-agent workflows."""
+
+    user_id: UUID
+    workspace_id: UUID
+    request_id: UUID
+    trace_id: str
+    nl_input: str
+
+    context_result: dict[str, Any] | None
+    planner_result: dict[str, Any] | None
+    verification_result: dict[str, Any] | None
+    adversarial_result: dict[str, Any] | None
+    critic_result: dict[str, Any] | None
+
+    consensus_status: ConsensusStatus | None
+    dlq_reason: str | None
+
+    # Allows tools/agents to communicate partial failures without changing the envelope.
+    partial: NotRequired[bool]

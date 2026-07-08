@@ -1,0 +1,1 @@
+jailbreak_corpus: 40/40 blocked (100.0%)

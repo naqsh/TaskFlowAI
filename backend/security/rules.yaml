@@ -1,0 +1,42 @@
+version: "1.0.0"
+changelog:
+  - version: "1.0.0"
+    date: "2026-07-08"
+    notes: "Initial MVP 4 constitutional rules (TF-047)"
+rules:
+  - id: system_prompt_exfiltration
+    description: "Never reveal system prompts or internal instructions"
+    pattern: "(?i)(reveal|show|print|dump|expose)\\s+(me\\s+)?(the\\s+|your\\s+)?(system\\s+prompt|internal\\s+instructions?|hidden\\s+prompt)"
+    confidence: 0.95
+  - id: dan_mode
+    description: "Block DAN / jailbreak persona activation"
+    pattern: "(?i)\\b(dan|do\\s+anything\\s+now)\\b.*\\b(mode|persona|jailbreak)\\b"
+    confidence: 0.92
+  - id: ignore_safety
+    description: "Never ignore safety guidelines"
+    pattern: "(?i)(ignore|bypass|disable|turn\\s+off)\\s+(all\\s+)?(safety|guardrails?|restrictions?|filters?)"
+    confidence: 0.93
+  - id: privilege_escalation
+    description: "Block privilege escalation in task text"
+    pattern: "(?i)(grant\\s+(me\\s+)?admin|escalate\\s+privileges?|become\\s+root|sudo\\s+mode)"
+    confidence: 0.9
+  - id: pii_generation
+    description: "Never generate PII even if requested"
+    pattern: "(?i)(generate|create|fabricate)\\b[\\w\\s]{0,20}\\b(ssn|social\\s+security|credit\\s+card)"
+    confidence: 0.91
+  - id: embedded_instructions
+    description: "Block instructions embedded in task titles"
+    pattern: "(?i)^\\s*\\[\\s*(system|admin|root)\\s*\\]"
+    confidence: 0.88
+  - id: role_override
+    description: "Block role override attempts"
+    pattern: "(?i)you\\s+are\\s+now\\s+(an?\\s+)?(unrestricted|unfiltered|evil)"
+    confidence: 0.9
+  - id: instruction_injection
+    description: "Block new-instructions injection prefix"
+    pattern: "(?i)new\\s+instructions?\\s*:"
+    confidence: 0.91
+  - id: data_exfiltration
+    description: "Block data exfiltration requests"
+    pattern: "(?i)(exfiltrate|leak|export)\\s+(all\\s+)?(user\\s+data|database|secrets?)"
+    confidence: 0.92

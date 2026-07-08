@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy import select
@@ -56,3 +57,31 @@ class TaskRepository(WorkspaceScopedRepository[Task]):
             limit=limit,
             offset=offset,
         )
+
+    async def list_due_reminder_tasks(
+        self,
+        workspace_id: UUID,
+        *,
+        due_date: date,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> list[Task]:
+        """List tasks due on a specific date for reminder delivery.
+
+        YOLO scope: for each due task, we notify the assignee (if any) and send email
+        when the recipient has email notifications enabled.
+        """
+        stmt = (
+            select(Task)
+            .where(
+                Task.workspace_id == workspace_id,
+                Task.due_date == due_date,
+                Task.assignee_id.is_not(None),
+                Task.status.not_in([TaskStatus.DONE, TaskStatus.ARCHIVED]),
+            )
+            .order_by(Task.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self._session.execute(stmt)
+        return list(result.scalars().all())

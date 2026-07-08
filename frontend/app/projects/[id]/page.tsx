@@ -9,6 +9,7 @@
  import { fetchProject } from "@/lib/projects";
  import { Badge } from "@/components/ui/badge";
  import { TaskList } from "@/components/TaskList";
+import { AIProjectSummary } from "@/components/AIProjectSummary";
 
  export default function ProjectPage({ params }: { params: { id: string } }) {
    const router = useRouter();
@@ -50,6 +51,7 @@
          </div>
        </div>
 
+      {project ? <AIProjectSummary projectId={project.id} /> : null}
        <TaskList projectId={params.id} />
      </main>
    );

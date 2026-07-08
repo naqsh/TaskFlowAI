@@ -7,6 +7,7 @@ from enum import StrEnum
 from typing import Any
 from uuid import UUID
 
+import sqlalchemy as sa
 from sqlalchemy import (
     Boolean,
     Date,
@@ -229,6 +230,137 @@ class AuditLog(Base, UUIDPrimaryKeyMixin):
     metadata_: Mapped[dict[str, Any]] = mapped_column(
         "metadata", JSONB, nullable=False, default=dict
     )
+    prev_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    entry_hash: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+
+
+class NotificationType(StrEnum):
+    """In-app notification types."""
+
+    TASK_ASSIGNED = "task.assigned"
+    COMMENT_ADDED = "comment.added"
+    DUE_REMINDER = "task.due_reminder"
+
+
+class Notification(Base, UUIDPrimaryKeyMixin, TimestampMixin, WorkspaceScopedMixin):
+    """In-app notification persisted per user and workspace."""
+
+    __tablename__ = "notifications"
+
+    user_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    type: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    resource_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    resource_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True),
+        nullable=True,
+        index=True,
+    )
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class Attachment(Base, UUIDPrimaryKeyMixin, TimestampMixin, WorkspaceScopedMixin):
+    """File attachment persisted with metadata; bytes stored in local storage for MVP."""
+
+    __tablename__ = "attachments"
+
+    task_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("tasks.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    uploaded_by: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    filename: Mapped[str] = mapped_column(String(500), nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(200), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(sa.BigInteger(), nullable=False)
+    storage_key: Mapped[str] = mapped_column(String(1000), nullable=False, index=True)
+
+
+class UserPreference(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Per-user preferences (MVP 2: email notification toggle)."""
+
+    __tablename__ = "user_preferences"
+
+    user_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+    email_notifications_enabled: Mapped[bool] = mapped_column(
+        Boolean(),
+        nullable=False,
+        server_default=sa.text("true"),
+        default=True,
+    )
+
+
+class EpisodicEntry(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Episodic memory entries distilled from successful AI runs."""
+
+    __tablename__ = "episodic_entries"
+
+    user_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # `session_id` is typically a composite namespace (user/workspace/session) as a string.
+    session_id: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    lesson_type: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    content: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    version: Mapped[int] = mapped_column(sa.Integer(), nullable=False, default=1)
+
+
+class DLQEvent(Base, UUIDPrimaryKeyMixin):
+    """Dead letter queue for failed agent runs and security violations (TF-043)."""
+
+    __tablename__ = "dlq_events"
+
+    request_id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False, index=True)
+    user_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True), nullable=True, index=True)
+    workspace_id: Mapped[UUID | None] = mapped_column(
+        PG_UUID(as_uuid=True), nullable=True, index=True
+    )
+    agent_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    reason: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(40), nullable=False, default="pending")
+    envelope_json: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)
+    retry_count: Mapped[int] = mapped_column(sa.Integer(), nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+
+
+class QuarantinedMcpResponse(Base, UUIDPrimaryKeyMixin):
+    """Quarantined MCP responses for admin review (TF-042)."""
+
+    __tablename__ = "quarantined_mcp_responses"
+
+    tool: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    reason: Mapped[str] = mapped_column(String(100), nullable=False)
+    raw_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,

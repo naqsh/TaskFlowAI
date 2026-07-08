@@ -1,0 +1,20 @@
+"""Grafana alert rule for security dwell time SLO (TF-044)."""
+
+groups:
+  - name: taskflow-security
+    rules:
+      - alert: SecurityDwellTimeP95High
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(security_dwell_time_seconds_bucket[5m])) by (le, incident_type)
+          ) > 3600
+        for: 10m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Security dwell time P95 exceeds 1 hour SLO"
+          description: |
+            P95 dwell time for {{ $labels.incident_type }} is above 3600s.
+            Investigate delayed detection in InputSecurityScanner pipeline.
