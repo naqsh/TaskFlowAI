@@ -19,6 +19,7 @@ from backend.exceptions import ConflictError, UnauthorizedError
 from backend.repositories.refresh_token_repository import RefreshTokenRepository
 from backend.repositories.user_repository import UserRepository
 from backend.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, UserResponse
+from backend.services.audit_service import AuditService
 from backend.settings import Settings
 
 
@@ -70,6 +71,7 @@ class AuthService:
         self._settings = settings
         self._users = UserRepository(session)
         self._refresh_tokens = RefreshTokenRepository(session)
+        self._audit = AuditService()
 
     def _create_access_token(
         self,
@@ -167,6 +169,17 @@ class AuthService:
             full_name=user.full_name,
             workspace_id=workspace.id,
         )
+
+        await self._audit.log_event(
+            actor_id=user.id,
+            action="user.register",
+            resource_type="user",
+            resource_id=user.id,
+            metadata={
+                "workspace_id": str(workspace.id),
+            },
+            workspace_id=workspace.id,
+        )
         return profile, tokens
 
     async def login(self, payload: LoginRequest) -> tuple[UserResponse, TokenPair]:
@@ -183,6 +196,17 @@ class AuthService:
             id=user.id,
             email=user.email,
             full_name=user.full_name,
+            workspace_id=workspace_id,
+        )
+
+        await self._audit.log_event(
+            actor_id=user.id,
+            action="user.login",
+            resource_type="user",
+            resource_id=user.id,
+            metadata={
+                "workspace_id": str(workspace_id) if workspace_id is not None else None,
+            },
             workspace_id=workspace_id,
         )
         return profile, tokens

@@ -16,6 +16,7 @@ from backend.repositories.workspace_member_repository import WorkspaceMemberRepo
 from backend.schemas.task import TaskCreate, TaskResponse, TaskUpdate
 from backend.security.abac import Action, PermissionContext, Resource, check_permission
 from backend.security.sanitization import sanitize_description
+from backend.services.audit_service import AuditService
 
 
 class TaskService:
@@ -26,6 +27,7 @@ class TaskService:
         self._tasks = TaskRepository(session)
         self._projects = ProjectRepository(session)
         self._members = WorkspaceMemberRepository(session)
+        self._audit = AuditService()
 
     def _task_permission_context(self, task: Task) -> PermissionContext:
         return PermissionContext(
@@ -141,6 +143,19 @@ class TaskService:
             created_by=ctx.user.id,
         )
         persisted = await self._tasks.add(task)
+        # Write audit log in a separate transaction so failures never break the main request.
+        await self._audit.log_event(
+            actor_id=ctx.user.id,
+            action="task.created",
+            resource_type="task",
+            resource_id=persisted.id,
+            metadata={
+                "workspace_id": str(ctx.workspace_id),
+                "project_id": str(persisted.project_id),
+                "task_id": str(persisted.id),
+            },
+            workspace_id=ctx.workspace_id,
+        )
         return self._to_response(persisted, warnings=warnings)
 
     async def update_task(
@@ -180,12 +195,39 @@ class TaskService:
         await self._session.flush()
         await self._session.refresh(task)
         warnings = self._due_date_warnings(task.due_date)
+        await self._audit.log_event(
+            actor_id=ctx.user.id,
+            action="task.updated",
+            resource_type="task",
+            resource_id=task.id,
+            metadata={
+                "workspace_id": str(ctx.workspace_id),
+                "project_id": str(task.project_id),
+                "task_id": str(task.id),
+                "new_status": task.status,
+            },
+            workspace_id=ctx.workspace_id,
+        )
         return self._to_response(task, warnings=warnings)
 
     async def archive_task(self, ctx: WorkspaceAuthContext, task_id: UUID) -> TaskResponse:
         task = await self._get_task_or_404(ctx, task_id)
         self._ensure_task_permission(ctx, Action.DELETE, task=task)
+        previous_status = task.status
         task.status = TaskStatus.ARCHIVED
         await self._session.flush()
         await self._session.refresh(task)
+        await self._audit.log_event(
+            actor_id=ctx.user.id,
+            action="task.deleted",
+            resource_type="task",
+            resource_id=task.id,
+            metadata={
+                "workspace_id": str(ctx.workspace_id),
+                "project_id": str(task.project_id),
+                "task_id": str(task.id),
+                "previous_status": previous_status,
+            },
+            workspace_id=ctx.workspace_id,
+        )
         return self._to_response(task)

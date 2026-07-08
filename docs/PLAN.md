@@ -12,7 +12,7 @@ Progress tracker for all epics. Sync when JSON tickets or completion status chan
 
 | Epic | Summary | Branch | Status |
 |---|---|---|---|
-| TF-E1 | MVP 1: Foundation — Auth, RBAC, CRUD, Docs Scaffold | `epic/TF-E1-foundation` | 🔄 TF-008 done — TF-009 next |
+| TF-E1 | MVP 1: Foundation — Auth, RBAC, CRUD, Docs Scaffold | `epic/TF-E1-foundation` | ✅ TF-009+TF-010 done |
 | TF-E2 | MVP 2: Collaboration | `epic/TF-E2-collaboration` | Planned |
 | TF-E3 | MVP 3: AI Intelligence (part 1 + 2) | `epic/TF-E3-ai-intelligence` | Planned |
 | TF-E4 | MVP 4: Security Layer 1 | `epic/TF-E4-security-layer1` | Planned |
@@ -34,8 +34,8 @@ Progress tracker for all epics. Sync when JSON tickets or completion status chan
 | TF-006 | Authentication JWT and Supabase Auth | ✅ Done |
 | TF-007 | RBAC and ABAC Enforcement | ✅ Done |
 | TF-008 | Projects and Tasks CRUD API | ✅ Done |
-| TF-009 | Comments API and XSS Sanitization | Planned |
-| TF-010 | Dashboard and Task Management Frontend | Planned |
+| TF-009 | Comments API and XSS Sanitization | ✅ Done |
+| TF-010 | Dashboard and Task Management Frontend | ✅ Done |
 | TF-011 | Audit Logs and OpenTelemetry Baseline | Planned |
 | TF-012 | GitHub Actions CI and Docker Backend Scaffold | ✅ Done |
 

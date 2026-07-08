@@ -23,7 +23,7 @@ Root index for TaskFlow AI. Engineering standards, agent specs, and prompt rules
 | Task log | Write plan to `docs/tasks/todo.md` before any implementation |
 | Verify plan | Check in before starting — do not build on an unconfirmed plan |
 | Lessons review | Read `docs/tasks/lessons.md` at session start before touching code |
-| Correction loop | After any user correction: update `docs/tasks/lessons.md` immediately |
+| Correction loop | After any mistake is made or corrected by a user: update `docs/tasks/lessons.md` immediately |
 | Done gate | Never mark complete without proving it works (tests, logs, diff) |
 | Backend verification gate | Before marking any backend task done: `uv run ruff check backend && uv run ruff format backend && uv run mypy backend && uv run pytest` |
 | Security first | Check `docs/SECURITY.md` before modifying agent inputs/outputs (when created) |
