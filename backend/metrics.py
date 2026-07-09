@@ -76,3 +76,21 @@ AUDIT_CHAIN_VERIFICATION_FAILURES_TOTAL = Counter(
     "audit_chain_verification_failures_total",
     "Audit hash-chain verification failures",
 )
+
+# Identity & credentials metrics (TF-E5, MVP 5)
+CREDENTIAL_ISSUANCE_TOTAL = Counter(
+    "credential_issuance_total",
+    "Total JIT credentials issued",
+    ["service", "intent"],
+)
+
+LOCAL_LLM_REQUESTS_TOTAL = Counter(
+    "local_llm_requests_total",
+    "Total local LLM provider invocations",
+)
+
+LOCAL_LLM_LATENCY_SECONDS = Histogram(
+    "local_llm_latency_seconds",
+    "Local LLM request latency in seconds",
+    buckets=(0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0),
+)

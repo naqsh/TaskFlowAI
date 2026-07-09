@@ -62,3 +62,8 @@ class UnsupportedMediaTypeError(AppException):
 class PayloadTooLargeError(AppException):
     status_code = 413
     error_code = "payload_too_large"
+
+
+class ConsentRequiredError(AppException):
+    status_code = 403
+    error_code = "consent_required"

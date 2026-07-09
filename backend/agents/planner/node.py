@@ -53,6 +53,15 @@ def _infer_mode(nl_input: str) -> Literal["create_task", "summary", "prioritize"
     return "create_task"
 
 
+def _classify_input(nl_input: str) -> str:
+    """Classify input for local LLM routing (TF-053)."""
+    lower = nl_input.lower()
+    pii_markers = ("ssn", "social security", "passport", "credit card", "confidential_pii")
+    if any(marker in lower for marker in pii_markers):
+        return "confidential_pii"
+    return "confidential"
+
+
 async def planner_agent_node(
     state: TaskFlowGraphState,
     llm_router: LLMRouter,
@@ -135,6 +144,8 @@ async def planner_agent_node(
 
     prompt_input = spotlight_external_content(state["nl_input"])
     messages: list[dict[str, str]] = [{"role": "user", "content": prompt_input}]
+    data_classification = _classify_input(state["nl_input"])
+    force_local = data_classification == "confidential_pii"
 
     last_error: Exception | None = None
     for attempt in range(2):
@@ -146,6 +157,7 @@ async def planner_agent_node(
                 max_tokens=1024,
                 reasoning_effort="high",
                 effort="xhigh",
+                force_local=force_local,
             )
             _ = llm_start
             extracted = _extract_json_object(resp.content)
@@ -159,7 +171,7 @@ async def planner_agent_node(
                 trace_id=trace_id,
                 model_used=resp.model_used,
                 prompt_version="v2.0.0",
-                data_classification="confidential",
+                data_classification=data_classification,
                 spotlighting_applied=True,
             )
 

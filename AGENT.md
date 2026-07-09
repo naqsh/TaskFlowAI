@@ -43,7 +43,7 @@ Root index for TaskFlow AI. Engineering standards, agent specs, and prompt rules
 | **MVP 2** | Collaboration, notifications, activity feed | ✅ Complete |
 | **MVP 3** | Multi-agent AI, LangGraph, MCP, Agent OS Kernel | ✅ Complete (Part 1 + Part 2) |
 | **MVP 4** | Security Layer 1 — injection defense, DLQ, observability | ✅ Complete |
-| **MVP 5** | Identity, JIT credentials, delegation tokens | Planned |
+| **MVP 5** | Identity, JIT credentials, delegation tokens | ✅ Complete |
 | **MVP 6** | Production, supply chain, Cosign, governance | Planned |
 | **Option A (TF-E7)** | Vercel FE + Docker BE hybrid deploy hardening | Planned |
 
@@ -60,6 +60,9 @@ Root index for TaskFlow AI. Engineering standards, agent specs, and prompt rules
 | Token efficiency | docs/TOKEN-EFFICIENCY.md | MVP 1 |
 | Kick-off prompt | docs/KICKOFF-PROMPT.md | MVP 1 |
 | Active task plan | docs/tasks/todo.md | MVP 1 |
+| Identity propagation | docs/IDENTITY-PROPAGATION.md | MVP 5 |
+| Agentic consent | docs/AGENTIC-CONSENT.md | MVP 5 |
+| Local LLM fallback | docs/LOCAL-LLM.md | MVP 5 |
 | Self-improvement log | docs/tasks/lessons.md | MVP 1 |
 | Local / Docker setup | docs/guidance/try-it-locally.md | MVP 1 |
 | Supabase setup | docs/guidance/supabase-setup.md | MVP 1 |
@@ -81,6 +84,8 @@ Per-agent `AGENT.md` files under `backend/agents/` are created during MVP 3 — 
 | **Documentation Agent** | Domain `AGENT.md` and docs sync | `.cursor/rules/docs.mdc` | 4th |
 
 Epic workflow: branch from `epic/taskflow-implementation` → implement → refactor → test → docs → PR → merge commit.
+
+**mTLS extension (MVP 6+):** NHI registry in `backend/security/nhi_registry.py` supports future mTLS by swapping self-signed dev certs for Vault PKI-issued certificates without changing `ToolManager` validation interface.
 
 ---
 

@@ -10,9 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.db.models import TaskPriority
 from backend.dependencies.database import get_db
 from backend.dependencies.rbac import WorkspaceAuthContext, get_workspace_auth_context
+from backend.exceptions import ConsentRequiredError
 from backend.graph.factory import build_taskflow_graph
 from backend.graph.post_process import persist_graph_outcome
 from backend.graph.state import TaskFlowGraphState
+from backend.kernel.identity_manager import IdentityManager
+from backend.security.identity_factory import build_identity_manager
+from backend.services.consent_service import ConsentService
 from backend.settings import Settings, get_settings
 
 router = APIRouter(prefix="/ai", tags=["ai"])
@@ -76,13 +80,43 @@ class AIResponse(BaseModel):
     metadata: AIResponseMetadata
 
 
-def _ai_state(ctx: WorkspaceAuthContext, *, trace_id: str, nl_input: str) -> TaskFlowGraphState:
+def _session_id(ctx: WorkspaceAuthContext) -> str:
+    return f"{ctx.user.id}:{ctx.workspace_id}"
+
+
+async def _require_ai_consent(
+    ctx: WorkspaceAuthContext,
+    session: AsyncSession,
+) -> None:
+    """Enforce workspace-scoped AI consent before graph invoke (TF-051)."""
+    consent = ConsentService(session)
+    if not await consent.is_valid(user_id=ctx.user.id, workspace_id=ctx.workspace_id):
+        raise ConsentRequiredError("AI consent required before invoking AI endpoints")
+
+
+def _ai_state(
+    ctx: WorkspaceAuthContext,
+    *,
+    trace_id: str,
+    nl_input: str,
+    identity_manager: IdentityManager,
+) -> TaskFlowGraphState:
+    session_id = _session_id(ctx)
+    delegation = identity_manager.default_for(
+        user_id=ctx.user.id,
+        agent_id="context_agent",
+        intent="read_tasks",
+        session_id=session_id,
+        parent_trace_id=trace_id,
+    )
     return {
         "user_id": ctx.user.id,
         "workspace_id": ctx.workspace_id,
         "request_id": uuid4(),
         "trace_id": trace_id,
         "nl_input": nl_input,
+        "session_id": session_id,
+        "delegation_context": delegation,
         "context_result": None,
         "planner_result": None,
         "verification_result": None,
@@ -113,8 +147,14 @@ async def _run_ai_graph(
     session: AsyncSession,
     settings: Settings,
 ) -> dict[str, Any]:
+    identity_manager = build_identity_manager(settings)
     graph = build_taskflow_graph(settings, session=session)
-    state = _ai_state(ctx, trace_id=trace_id, nl_input=nl_input)
+    state = _ai_state(
+        ctx,
+        trace_id=trace_id,
+        nl_input=nl_input,
+        identity_manager=identity_manager,
+    )
     resp_dict = await graph.ainvoke(state)
     await persist_graph_outcome(session, state, resp_dict)
     return resp_dict
@@ -129,24 +169,8 @@ async def parse_task(
     session: Annotated[AsyncSession, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> AIResponse:
-    """POST /api/v1/ai/parse-task (TF-037)."""
-    # MVP 3: AI consent stub always allowed; enforced in MVP 5 (TF-049).
-    ai_consent_granted = True
-    if not ai_consent_granted:
-        trace_id = _trace_id_from_request(request)
-        _set_trace_header(response, trace_id)
-        return AIResponse(
-            status="failure",
-            trace_id=trace_id,
-            data=AIResponseData(mode=None, task_draft=None, summary=None, priorities=None),
-            metadata=AIResponseMetadata(
-                trace_id=trace_id,
-                execution_ms=0,
-                tokens_used=0,
-                reason="consent_required",
-            ),
-        )
-
+    """POST /api/v1/ai/parse-task (TF-037 / TF-051 consent enforced)."""
+    await _require_ai_consent(ctx, session)
     trace_id = _trace_id_from_request(request)
     resp_dict = await _run_ai_graph(
         ctx=ctx,
@@ -168,6 +192,7 @@ async def summarize(
     session: Annotated[AsyncSession, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> AIResponse:
+    await _require_ai_consent(ctx, session)
     trace_id = _trace_id_from_request(request)
     nl_input = (
         payload.nl_input
@@ -194,6 +219,7 @@ async def prioritize(
     session: Annotated[AsyncSession, Depends(get_db)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> AIResponse:
+    await _require_ai_consent(ctx, session)
     trace_id = _trace_id_from_request(request)
     lower = payload.nl_input.lower()
     if "prioritize" in lower or "what should i work" in lower:
