@@ -1,6 +1,6 @@
 # Implementation Plan — TaskFlow AI
 
-**Version:** 0.1.0 | **Last Updated:** July 2026
+**Version:** 0.1.0 | **Last Updated:** 2026-07-09
 
 Progress tracker for all epics. Sync when JSON tickets or completion status changes.
 
@@ -86,7 +86,7 @@ Progress tracker for all epics. Sync when JSON tickets or completion status chan
 | TF-047 | Constitutional rules.yaml | ✅ Implemented |
 | TF-048 | Integration tests + docs sync | ✅ Implemented |
 
-*Proof:* `proof/mvp4/corpus_block_rate.txt`; `docs/SECURITY.md`; security test suite 41 cases in `backend/tests/security/`; runtime wiring via `backend/graph/post_process.py`.
+*Proof (re-verified 2026-07-09):* `uv run pytest` → 156 passed, 26 skipped; security suite 41 passed; jailbreak corpus 100% (40/40) in `proof/mvp4/`; runtime wiring via `backend/graph/post_process.py`, `backend/graph/factory.py`, `backend/security/factory.py`.
 
 ---
 
