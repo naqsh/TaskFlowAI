@@ -35,3 +35,27 @@ def test_supply_chain_doc_exists() -> None:
 
 def test_dependabot_config_exists() -> None:
     assert DEPENDABOT_CONFIG_PATH.is_file()
+
+
+def test_pip_audit_gate_script_exists() -> None:
+    gate = Path("scripts/pip_audit_gate.py")
+    assert gate.is_file()
+    text = gate.read_text(encoding="utf-8")
+    assert "IGNORED_VULN_IDS" in text
+    assert "ADR-003" in Path("docs/adr/ADR-003-ecdsa-pip-audit-exception.md").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_pip_audit_gate_dry_run() -> None:
+    import subprocess
+
+    proc = subprocess.run(
+        ["uv", "run", "python", "scripts/pip_audit_gate.py", "--dry-run"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert proc.returncode == 0
+    assert "CRITICAL" in proc.stdout
+    assert "HIGH" in proc.stdout

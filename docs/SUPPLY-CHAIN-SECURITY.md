@@ -25,11 +25,11 @@ uv run python scripts/validate_ai_bom.py --warn-stale
 
 ## pip-audit CI gate
 
-CI runs `pip-audit` against the locked environment and **blocks** merges on **CRITICAL** or **HIGH** CVEs in production dependencies.
+CI runs `scripts/pip_audit_gate.py`, which audits **production** dependencies (via `uv export --no-dev`) and **blocks** merges on **CRITICAL** or **HIGH** CVEs.
 
 ### CVE without fix
 
-Document an ADR exception with expiry date in `docs/adr/` and add a pip-audit ignore with justification.
+Document an ADR exception with expiry date in `docs/adr/` (see `ADR-003-ecdsa-pip-audit-exception.md`) and add the ID to `IGNORED_VULN_IDS` in `scripts/pip_audit_gate.py`.
 
 ## OpenSSF Scorecard
 
