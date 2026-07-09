@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { ObservabilityBadge } from "@/components/ObservabilityBadge";
 import { ConsentPromptModal } from "@/components/ConsentPromptModal";
+import { grantAIConsent } from "@/lib/consent";
 import { taskPrioritySchema } from "@/lib/tasks";
 
 const consentKey = "taskflow:aiConsentAccepted";
@@ -90,10 +91,18 @@ export function AITaskCreator({
 
   const applyConsent = () => {
     const input = pendingInputRef.current ?? nlInput.trim();
-    setConsentAccepted(true);
     setConsentModalOpen(false);
-    if (!input) return;
-    void runAI(input);
+    void (async () => {
+      try {
+        await grantAIConsent();
+        setConsentAccepted(true);
+        if (!input) return;
+        await runAI(input);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to grant consent";
+        setAiError(message);
+      }
+    })();
   };
 
   const cancelConsent = () => {

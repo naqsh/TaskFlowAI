@@ -16,7 +16,7 @@ Progress tracker for all epics. Sync when JSON tickets or completion status chan
 | TF-E2 | MVP 2: Collaboration | `epic/TF-E2-collaboration` | ✅ Implemented (TF-013..TF-020) |
 | TF-E3 | MVP 3: AI Intelligence (part 1 + 2) | `epic/TF-E3-ai-intelligence-part2` | ✅ Implemented (TF-031..TF-040) |
 | TF-E4 | MVP 4: Security Layer 1 | `epic/TF-E4-security-layer1` | ✅ Implemented (TF-041..TF-048) |
-| TF-E5 | MVP 5: Identity & Credentials | `epic/TF-E5-identity-credentials` | Planned |
+| TF-E5 | MVP 5: Identity & Credentials | `epic/TF-E5-identity-credentials` | ✅ Implemented (TF-049..TF-054) |
 | TF-E6 | MVP 6: Production & Supply Chain | `epic/TF-E6-production` | Planned |
 | TF-E7 | Option A: Hybrid Deploy Hardening | `epic/TF-E7-hybrid-deploy` | Planned |
 

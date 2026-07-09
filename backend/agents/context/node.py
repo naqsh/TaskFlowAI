@@ -49,7 +49,11 @@ async def context_agent_node(
     tool_params: dict[str, Any] = {"user_id": user_id, "workspace_id": workspace_id}
 
     try:
-        results = await _gather_tools(tool_params=tool_params, tool_manager=tool_manager)
+        results = await _gather_tools(
+            tool_params=tool_params,
+            tool_manager=tool_manager,
+            delegation=state.get("delegation_context"),
+        )
     except MCPTimeoutError:
         duration_ms = int((time.perf_counter() - start) * 1000)
         metadata = ExecutionMetadata(
@@ -122,7 +126,7 @@ async def context_agent_node(
 
 
 async def _gather_tools(
-    *, tool_params: Mapping[str, Any], tool_manager: ToolManager
+    *, tool_params: Mapping[str, Any], tool_manager: ToolManager, delegation: Any = None
 ) -> dict[str, list[dict[str, Any]]]:
     """Fetch tasks/projects/comments and allow partial failures."""
     # We intentionally run sequentially for MVP determinism; Part 2 can parallelize.
@@ -139,6 +143,7 @@ async def _gather_tools(
                 agent_id="context_agent",
                 tool=tool,
                 params=dict(tool_params),
+                delegation=delegation,
             )
             # Tool manager/validator should already normalize to JSON-friendly dicts.
             out[target_key] = response or []

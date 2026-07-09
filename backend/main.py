@@ -16,6 +16,7 @@ from backend.exceptions import AppException
 from backend.logging_config import bind_trace_id, configure_logging, get_logger
 from backend.metrics import API_REQUEST_DURATION_SECONDS, HTTP_REQUESTS_TOTAL
 from backend.rate_limit_middleware import rate_limit_middleware
+from backend.security.nhi_registry import nhi_registry
 from backend.settings import Settings, get_settings
 from backend.telemetry import configure_telemetry, get_tracer
 
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     configure_telemetry(settings)
     if "asyncpg" in settings.database_url:
         init_engine(settings)
+    nhi_registry.initialize()
     logger.info("application_started", app_env=settings.app_env, version=settings.app_version)
     yield
     if "asyncpg" in settings.database_url:

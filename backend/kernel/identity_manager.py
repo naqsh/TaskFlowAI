@@ -1,54 +1,117 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any
 from uuid import UUID
 
-DelegationIntent = Literal[
-    "read_tasks",
-    "read_projects",
-    "read_comments",
-    "create_task",
-    "update_task",
-    "none",
-]
-
-
-@dataclass(frozen=True)
-class DelegationContext:
-    """Stub delegation context used for confused-deputy prevention (MVP Part 1)."""
-
-    user_id: UUID
-    session_id: str
-    agent_id: str
-    intent: DelegationIntent
-    permissions: list[str]
-    issued_at: datetime
-    expires_at: datetime
-    parent_trace_id: str | None = None
-
-    @staticmethod
-    def default_for(user_id: UUID, agent_id: str, intent: DelegationIntent) -> DelegationContext:
-        now = datetime.now(UTC)
-        # 15 minutes default TTL as specified in the proposal.
-        return DelegationContext(
-            user_id=user_id,
-            session_id="stub",
-            agent_id=agent_id,
-            intent=intent,
-            permissions=[],
-            issued_at=now,
-            expires_at=now.replace(minute=now.minute + 15),
-            parent_trace_id=None,
-        )
+from backend.security.delegation import (
+    DelegationContext,
+    DelegationIntent,
+    create_delegation,
+    validate_delegation,
+)
 
 
 class IdentityManager:
-    """Identity + delegation scaffolds (Part 1 stub)."""
+    """Identity + delegation issuance and validation (TF-049)."""
+
+    def __init__(self, *, grace_seconds: int = 30) -> None:
+        self._grace_seconds = grace_seconds
+        self._revoked_sessions: set[str] = set()
+
+    def revoke_session(self, session_id: str) -> None:
+        self._revoked_sessions.add(session_id)
+
+    def is_session_revoked(self, session_id: str) -> bool:
+        return session_id in self._revoked_sessions
 
     async def create_delegation_context(
-        self, user_id: UUID, agent_id: str, intent: DelegationIntent
-    ) -> Any:
-        # Part 1 uses a stub; Part 5 replaces it with Vault-backed JIT issuance.
-        return DelegationContext.default_for(user_id=user_id, agent_id=agent_id, intent=intent)
+        self,
+        user_id: UUID,
+        agent_id: str,
+        intent: DelegationIntent,
+        *,
+        session_id: str,
+        parent_trace_id: str | None = None,
+        ttl_seconds: int = 900,
+    ) -> DelegationContext:
+        ctx = create_delegation(
+            user_id=user_id,
+            session_id=session_id,
+            agent_id=agent_id,
+            intent=intent,
+            parent_trace_id=parent_trace_id,
+            ttl_seconds=ttl_seconds,
+            grace_seconds=self._grace_seconds,
+        )
+        if self.is_session_revoked(session_id):
+            return DelegationContext(
+                user_id=ctx.user_id,
+                session_id=ctx.session_id,
+                agent_id=ctx.agent_id,
+                intent=ctx.intent,
+                permissions=ctx.permissions,
+                issued_at=ctx.issued_at,
+                expires_at=ctx.expires_at,
+                parent_trace_id=ctx.parent_trace_id,
+                revoked=True,
+            )
+        return ctx
+
+    def validate_delegation_context(
+        self,
+        ctx: DelegationContext,
+        *,
+        tool: str | None = None,
+        required_permission: str | None = None,
+    ) -> None:
+        if self.is_session_revoked(ctx.session_id):
+            from backend.security.delegation import DelegationRevokedError
+
+            raise DelegationRevokedError("session_revoked")
+        validate_delegation(
+            ctx,
+            tool=tool,
+            required_permission=required_permission,
+            grace_seconds=self._grace_seconds,
+        )
+
+    def delegation_for_mcp(
+        self,
+        ctx: DelegationContext,
+        tool: str,
+    ) -> DelegationContext:
+        """Validate delegation before MCP call; raises on confused deputy."""
+        self.validate_delegation_context(ctx, tool=tool)
+        return ctx
+
+    @staticmethod
+    def serialize(ctx: DelegationContext) -> dict[str, Any]:
+        return {
+            "user_id": str(ctx.user_id),
+            "session_id": ctx.session_id,
+            "agent_id": ctx.agent_id,
+            "intent": ctx.intent,
+            "permissions": list(ctx.permissions),
+            "issued_at": ctx.issued_at.isoformat(),
+            "expires_at": ctx.expires_at.isoformat(),
+            "parent_trace_id": ctx.parent_trace_id,
+            "revoked": ctx.revoked,
+        }
+
+    @staticmethod
+    def default_for(
+        user_id: UUID,
+        agent_id: str,
+        intent: DelegationIntent,
+        *,
+        session_id: str = "stub",
+        parent_trace_id: str | None = None,
+    ) -> DelegationContext:
+        """Backward-compatible helper for tests."""
+        return create_delegation(
+            user_id=user_id,
+            session_id=session_id,
+            agent_id=agent_id,
+            intent=intent,
+            parent_trace_id=parent_trace_id,
+        )

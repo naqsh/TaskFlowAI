@@ -353,6 +353,29 @@ class DLQEvent(Base, UUIDPrimaryKeyMixin):
     )
 
 
+class ConsentRecord(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+    """Time-bounded AI consent record per user and workspace (TF-051)."""
+
+    __tablename__ = "consent_records"
+
+    user_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    workspace_id: Mapped[UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("workspaces.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    scope: Mapped[str] = mapped_column(String(60), nullable=False, index=True)
+    granted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class QuarantinedMcpResponse(Base, UUIDPrimaryKeyMixin):
     """Quarantined MCP responses for admin review (TF-042)."""
 

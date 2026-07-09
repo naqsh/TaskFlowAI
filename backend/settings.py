@@ -46,6 +46,15 @@ class Settings(BaseSettings):
     mcp_anomaly_sigma: float = 2.0
     dlq_max_retries: int = 3
 
+    # Identity & credentials (TF-E5)
+    vault_mode: Literal["memory", "env"] = "memory"
+    delegation_grace_seconds: int = 30
+    consent_ttl_days: int = 30
+    local_llm_enabled: bool = False
+    local_llm_base_url: str = "http://localhost:11434"
+    local_llm_model: str = "llama3.1"
+    local_llm_max_context_tokens: int = 4096
+
     @model_validator(mode="after")
     def validate_production_secrets(self) -> Self:
         insecure_jwt_markers = ("dev-only", "change-in-production")
