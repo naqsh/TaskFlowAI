@@ -46,17 +46,19 @@ class LLMResponse:
 
 
 class LLMRouter:
-    """Provider router with primary → fallback behavior (Part 1 scaffold)."""
+    """Provider router with primary → fallback → local behavior (TF-053)."""
 
     def __init__(
         self,
         *,
         primary_provider: LLMProviderProtocol,
         fallback_provider: LLMProviderProtocol | None = None,
+        local_provider: LLMProviderProtocol | None = None,
         token_budget_tokens: int = 8000,
     ) -> None:
         self._primary = primary_provider
         self._fallback = fallback_provider
+        self._local = local_provider
         self._token_budget_tokens = token_budget_tokens
 
     _PROMPT_CACHE_HITS = 0
@@ -99,6 +101,7 @@ class LLMRouter:
         max_tokens: int,
         reasoning_effort: Literal["high", "xhigh"] | str = "high",
         effort: Literal["xhigh", "high", "medium", "low"] | str | None = None,
+        force_local: bool = False,
     ) -> LLMResponse:
         _ = effort  # Forward-compatibility; router forwards reasoning_effort only.
 
@@ -108,8 +111,9 @@ class LLMRouter:
             raise ValueError("max_tokens must be > 0")
 
         start = time.perf_counter()
+        provider = self._select_provider(force_local=force_local)
         try:
-            resp = await self._primary.generate(
+            resp = await provider.generate(
                 messages=messages,
                 model=model,
                 max_tokens=max_tokens,
@@ -156,3 +160,12 @@ class LLMRouter:
                 latency_ms=duration_ms,
             )
         return resp
+
+    def _select_provider(self, *, force_local: bool) -> LLMProviderProtocol:
+        if force_local:
+            if self._local is None:
+                from backend.llm.local import LLMError
+
+                raise LLMError("local_llm_disabled force_local=true but no local provider")
+            return self._local
+        return self._primary

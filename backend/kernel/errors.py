@@ -23,3 +23,11 @@ class ToolChainLimitExceeded(KernelError):
 
 class MCPValidationError(KernelError):
     """Raised when MCP responses fail schema validation."""
+
+
+class ConfusedDeputyError(KernelError):
+    """Raised when agent delegation intent mismatches MCP tool."""
+
+
+class AgentIdentityError(KernelError):
+    """Raised when NHI agent certificate validation fails."""

@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any, Literal, NotRequired, TypedDict
 from uuid import UUID
 
+from backend.security.delegation import DelegationContext
+
 ConsensusStatus = Literal["pending", "agreement", "escalation", "rejected"]
 
 
@@ -26,3 +28,7 @@ class TaskFlowGraphState(TypedDict, total=False):
 
     # Allows tools/agents to communicate partial failures without changing the envelope.
     partial: NotRequired[bool]
+
+    # Delegation context propagated API → graph → MCP (TF-049).
+    delegation_context: NotRequired[DelegationContext | None]
+    session_id: NotRequired[str]
