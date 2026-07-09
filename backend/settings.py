@@ -55,6 +55,14 @@ class Settings(BaseSettings):
     local_llm_model: str = "llama3.1"
     local_llm_max_context_tokens: int = 4096
 
+    # Production hardening (TF-E6)
+    cache_warming_enabled: bool = False
+    cache_ttl: int = 300
+    ai_features_enabled: bool = True
+    feature_vector_search: bool = False
+    agent_manifest_path: str = "infrastructure/agent-manifest.json"
+    ai_bom_path: str = "infrastructure/ai-bom.yaml"
+
     @model_validator(mode="after")
     def validate_production_secrets(self) -> Self:
         insecure_jwt_markers = ("dev-only", "change-in-production")

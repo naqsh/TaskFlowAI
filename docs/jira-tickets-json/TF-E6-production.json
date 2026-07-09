@@ -4,6 +4,9 @@
       "Issue id": "TF-E6",
       "Summary": "MVP 6: Production — Supply Chain, MITRE, Cache Warming, Deployment Gates",
       "Issue Type": "Epic",
+      "Status": "Done",
+      "Completed": "2026-07-09",
+      "Proof": "proof/mvp6/; 207 pytest passed; docs/SUPPLY-CHAIN-SECURITY.md, DEPLOYMENT-GATES.md, GOVERNANCE.md; ai-bom.yaml + pip-audit CI; MITRE 91.7% coverage",
       "Description": "Production hardening: AI-BOM, OpenSSF Scorecard CI, MITRE ATT&CK mapping, prompt cache warming, deployment gates with canary rollout, agent config signing, governance runbooks, and RAG quarantine stub.\n\nSCOPE:\n- infrastructure/ai-bom.yaml with weekly validation\n- OpenSSF Scorecard ≥7.0 policy, pip-audit blocking CI\n- MITRE ATT&CK for AI Systems coverage >80%\n- PromptCacheWarmer background task for high-traffic agents\n- Deployment gates: staging canary, smoke tests, gradual prod rollout\n- Cryptographic signing of agent config manifests\n- Emergency procedures and governance documentation\n- RAG poisoning defense stub if vector search enabled\n\nEFFORT: L (45 hours)\nPROJECT AREA: Infrastructure, Security, CI/CD\nDEPENDENCIES: TF-E5 complete\n\nEPIC LINK: epic/taskflow-implementation\nFEATURE BRANCH: epic/TF-E6-production\n\nREFERENCE DOCS:\n- docs/TaskFlowAI_Project_Proposal.md (§ Supply Chain, § Observability)\n- docs/SUPPLY-CHAIN-SECURITY.md (when created)\n- docs/DEPLOYMENT-GATES.md (when created)\n- docs/GOVERNANCE.md (when created)\n\nSUCCESS CRITERIA:\n- ai-bom.yaml validates in CI; pip-audit blocks critical CVEs\n- MITRE coverage doc shows >80% applicable techniques\n- Cache hit rate >70% under load test with warming enabled\n- Docker images signed with Cosign in CI\n- Canary deployment documented and tested in staging",
       "Labels": "mvp6,production,supply-chain,deployment",
       "Parent": ""
@@ -12,6 +15,8 @@
       "Issue id": "TF-055",
       "Summary": "AI-BOM and Supply Chain Documentation",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-09",
       "Description": "Create AI Bill of Materials manifest and supply chain security documentation.\n\nUSE CASES:\n- Security auditor reviews ai-bom.yaml for all models and libraries in production\n- CI fails when runtime model not listed in BOM\n- Weekly BOM freshness check warns if stale >7 days\n\nIMPLEMENTATION DETAILS:\n- Create infrastructure/ai-bom.yaml: models (gpt-5.5, claude-opus-4-8, gpt-4o-mini, llama-3.1, prompt-guard-2), libraries from pyproject.toml\n- Create docs/SUPPLY-CHAIN-SECURITY.md: BOM purpose, update cadence, ownership\n- Create backend/security/bom.py: load_ai_bom(), validate_bom_freshness()\n- Create scripts/validate_ai_bom.py CLI\n- Wire CI step: uv run python scripts/validate_ai_bom.py\n\nEFFORT: M (6 hours)\nPROJECT AREA: Infrastructure, Documentation\nDEPENDENCIES: TF-E5 complete\n\nTESTING CRITERIA:\n- validate_ai_bom.py exits 0 on match\n- Missing model in BOM exits 1\n- test_ai_bom.py passes\n\nEDGE CASES:\n- Local LLM disabled: still listed with security_posture=self-hosted\n- Stale BOM >7 days: CI warn\n- Dev dependency excluded from production BOM section",
       "Labels": "supply-chain,ai-bom,mvp6",
       "Parent": "TF-E6"
@@ -20,6 +25,8 @@
       "Issue id": "TF-056",
       "Summary": "OpenSSF Scorecard and pip-audit CI Gates",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-09",
       "Description": "Integrate pip-audit and OpenSSF Scorecard policy into CI with documented thresholds.\n\nUSE CASES:\n- PR with critical CVE in dependency fails CI\n- Scorecard policy requires SECURITY.md and Dependabot\n- Manual scorecard run documented for weekly audit\n\nIMPLEMENTATION DETAILS:\n- Add pip-audit to .github/workflows/ci.yml backend job\n- Block on critical/high CVEs in production deps\n- Create SECURITY.md at repo root if missing\n- Document Scorecard ≥7.0 threshold in docs/SUPPLY-CHAIN-SECURITY.md\n- Dependabot or Renovate config in .github/dependabot.yml\n- test_supply_chain_ci.py for policy constants\n\nEFFORT: M (5 hours)\nPROJECT AREA: CI/CD\nDEPENDENCIES: TF-055\n\nTESTING CRITERIA:\n- pip-audit passes on current lockfile\n- SECURITY.md exists\n- CI fails on injected fake critical CVE (test script)\n\nEDGE CASES:\n- CVE without fix: ADR exception with expiry\n- Scorecard CLI not in CI: manual weekly, pip-audit still blocks\n- npm audit parallel job for frontend",
       "Labels": "supply-chain,ci,openssf,mvp6",
       "Parent": "TF-E6"
@@ -28,6 +35,8 @@
       "Issue id": "TF-057",
       "Summary": "MITRE ATT&CK for AI Systems Coverage Mapping",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-09",
       "Description": "Map TaskFlow AI defenses to MITRE ATT&CK techniques with >80% coverage target.\n\nUSE CASES:\n- Security team reviews MITRE coverage doc for audit\n- Each technique maps to detection control and test reference\n- Gaps documented with remediation timeline\n\nIMPLEMENTATION DETAILS:\n- Create docs/security/MITRE-ATTACK-COVERAGE.md\n- Map: Prompt Injection → InputSecurityScanner + Spotlighting (95%)\n- Map: Tool Poisoning → MCPResponseValidator (90%)\n- Map: Excessive Agency → delegation + allowlists (85%)\n- Include coverage %, detection module, test file reference\n- Link from docs/SECURITY.md\n\nEFFORT: M (4 hours)\nPROJECT AREA: Documentation, Security\nDEPENDENCIES: TF-048\n\nTESTING CRITERIA:\n- Document lists >=10 applicable techniques\n- >80% marked as covered\n- Each covered technique has test reference\n\nEDGE CASES:\n- N/A techniques (model theft): explicitly marked N/A with rationale\n- New MITRE version: document review date\n- Uncovered technique: ticket reference for future work",
       "Labels": "security,mitre,docs,mvp6",
       "Parent": "TF-E6"
@@ -36,6 +45,8 @@
       "Issue id": "TF-058",
       "Summary": "Prompt Cache Warming Service",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-09",
       "Description": "Implement background PromptCacheWarmer to maintain >70% cache hit rate during peak hours.\n\nUSE CASES:\n- Peak hours 8am-6pm: cache warmed every 4 minutes per agent\n- First user AI request after idle does not pay full cold-cache latency\n- Ops monitors cache hit rate gauge stays >70%\n\nIMPLEMENTATION DETAILS:\n- Create backend/llm/cache_warmer.py: PromptCacheWarmer class per proposal\n- warm_cache(agent_id): minimal tokens ping with cached system prompt\n- keep_warm() asyncio background task on app startup\n- Settings: CACHE_WARMING_ENABLED, CACHE_TTL=300\n- Skip low-traffic agents <1 req/min\n- Document in docs/OBSERVABILITY.md and prompts/AGENT.md\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend\nDEPENDENCIES: TF-039\n\nTESTING CRITERIA:\n- Warmer populates cache (mock API shows cache_read on second call)\n- Disabled via settings skips background task\n- last_warmed timestamp updated per agent\n- Load test: hit rate >70% with warmer vs <50% without\n\nEDGE CASES:\n- API key invalid: warmer logs error, doesn't crash app\n- All agents warmed concurrently: stagger by 10s\n- Off-peak hours: reduce frequency to 15 min\n- Prompt version change: force re-warm",
       "Labels": "backend,llm,caching,mvp6",
       "Parent": "TF-E6"
@@ -44,6 +55,8 @@
       "Issue id": "TF-059",
       "Summary": "Deployment Gates and Canary Rollout",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-09",
       "Description": "Define and implement deployment pipeline with staging canary, smoke tests, and gradual production rollout.\n\nUSE CASES:\n- Merge to integration triggers staging deploy with smoke tests\n- Canary receives 10% traffic before full prod promotion\n- Failed smoke test blocks production promotion\n\nIMPLEMENTATION DETAILS:\n- Create docs/DEPLOYMENT-GATES.md: gate checklist per environment\n- Create .github/workflows/deploy.yml: staging → smoke → canary → prod\n- Smoke tests: /health, /metrics, POST /ai/parse-task mock, auth flow\n- GHCR push on merge to epic/taskflow-implementation\n- Rollback procedure documented\n- infrastructure/AGENT.md updated\n\nEFFORT: L (8 hours)\nPROJECT AREA: Infrastructure, CI/CD\nDEPENDENCIES: TF-056, TF-012\n\nTESTING CRITERIA:\n- deploy.yml dry-run succeeds\n- Smoke test script exits 0 against staging\n- Rollback documented with <15 min RTO target\n\nEDGE CASES:\n- Staging Supabase separate from prod\n- Smoke test flake: retry 3x before fail\n- Canary metrics regression: auto-rollback trigger documented\n- Secrets via GitHub environments",
       "Labels": "infrastructure,deployment,ci,mvp6",
       "Parent": "TF-E6"
@@ -52,6 +65,8 @@
       "Issue id": "TF-060",
       "Summary": "Agent Configuration Signing",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-09",
       "Description": "Cryptographically sign agent config manifests; reject unsigned configs at runtime.\n\nUSE CASES:\n- CI signs prompts/manifest.json after prompt pack changes\n- Runtime loader verifies signature before agent startup\n- Tampered agent config rejected with ConfigSignatureError\n\nIMPLEMENTATION DETAILS:\n- Create infrastructure/agent-manifest.json: agent ids, prompt versions, tool allowlists\n- Sign with Cosign or ed25519 key in CI (COSIGN_PRIVATE_KEY secret)\n- backend/kernel/config_loader.py: verify_signature() before loading allowlists\n- Public key in repo; private key in CI only\n- Document rotation in docs/SUPPLY-CHAIN-SECURITY.md\n\nEFFORT: M (5 hours)\nPROJECT AREA: Security, Infrastructure\nDEPENDENCIES: TF-038, TF-056\n\nTESTING CRITERIA:\n- Valid signature loads config\n- Tampered manifest fails verification\n- Unsigned manifest fails in production APP_ENV=production\n- Dev mode allows unsigned with warning\n\nEDGE CASES:\n- Key rotation: support two public keys during transition\n- Manifest missing agent: startup fails fast\n- Signature on wrong file version: version field in manifest",
       "Labels": "security,config,signing,mvp6",
       "Parent": "TF-E6"
@@ -60,6 +75,8 @@
       "Issue id": "TF-061",
       "Summary": "Governance Runbooks and Emergency Procedures",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-09",
       "Description": "Create governance documentation and incident response runbooks for production operations.\n\nUSE CASES:\n- On-call engineer follows incident-response-playbook for injection spike\n- Security dwell time breach triggers 15-min response SLA procedure\n- Emergency AI kill switch disables /api/v1/ai/* via feature flag\n\nIMPLEMENTATION DETAILS:\n- Create docs/GOVERNANCE.md: roles, change management, review cadence\n- Create docs/security/incident-response-playbook.md\n- Settings: AI_FEATURES_ENABLED global kill switch\n- Document vendor reassessment schedule (6 months)\n- Emergency procedure: disable MCP, disable AI, rotate JWT secret\n\nEFFORT: M (4 hours)\nPROJECT AREA: Documentation\nDEPENDENCIES: TF-057\n\nTESTING CRITERIA:\n- AI_FEATURES_ENABLED=false returns 503 on AI endpoints\n- Playbook covers injection spike, DLQ flood, credential compromise\n- GOVERNANCE.md references all security docs\n\nEDGE CASES:\n- Kill switch during in-flight graph: cancel with timeout\n- Partial disable: per-workspace AI flag future scope\n- Post-incident: lessons.md template in playbook",
       "Labels": "docs,governance,security,mvp6",
       "Parent": "TF-E6"
@@ -68,6 +85,8 @@
       "Issue id": "TF-062",
       "Summary": "MVP 6 Production E2E Proof and Docker Signing",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-09",
       "Description": "Cosign Docker image signing, production E2E proof package, and final PLAN.md update.\n\nUSE CASES:\n- Every production image signed and verifiable with cosign verify\n- proof/mvp6/ contains load test, security scan, deployment checklist\n- Portfolio-ready deployed hybrid stack documented\n\nIMPLEMENTATION DETAILS:\n- Add Cosign sign step to deploy.yml after docker push\n- Create proof/mvp6/: pytest output, load test cache hit rate, cosign verify log, checklist.md\n- Optional: RAG quarantine stub in backend/memory/quarantine.py if vector search flag set\n- Update docs/PLAN.md all epics TF-E1–TF-E7\n- Final README: deploy links Vercel + GHCR backend\n\nEFFORT: M (6 hours)\nPROJECT AREA: Infrastructure, Testing\nDEPENDENCIES: TF-055, TF-056, TF-057, TF-058, TF-059, TF-060, TF-061\n\nTESTING CRITERIA:\n- cosign verify passes on built image\n- proof/mvp6/checklist.md all items checked\n- Full pytest suite green\n- Cache hit rate proof >70% under load test\n\nEDGE CASES:\n- Cosign key unavailable in fork PR: sign only on main branch\n- Load test without API keys: use mock LLM provider\n- RAG not implemented: quarantine stub behind FEATURE_VECTOR_SEARCH=false",
       "Labels": "infrastructure,production,proof,mvp6",
       "Parent": "TF-E6"

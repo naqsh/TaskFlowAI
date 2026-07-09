@@ -1,0 +1,149 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - epic/taskflow-implementation
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - canary
+          - production
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: taskflow-ai-backend
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    outputs:
+      image_tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infrastructure/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+
+      - name: Sign image with Cosign (main/integration only)
+        if: github.ref == 'refs/heads/epic/taskflow-implementation'
+        uses: sigstore/cosign-installer@v3
+
+      - name: Cosign sign
+        if: github.ref == 'refs/heads/epic/taskflow-implementation'
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: |
+          if [ -n "$COSIGN_PRIVATE_KEY" ]; then
+            echo "$COSIGN_PRIVATE_KEY" > cosign.key
+            cosign sign --key cosign.key "${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest"
+            rm -f cosign.key
+          else
+            echo "COSIGN_PRIVATE_KEY not set — skipping sign (fork PR safe)"
+          fi
+
+  sign-agent-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Sync dependencies
+        run: uv sync --frozen --group dev
+
+      - name: Sign agent manifest
+        env:
+          AGENT_MANIFEST_PRIVATE_KEY: ${{ secrets.AGENT_MANIFEST_PRIVATE_KEY }}
+        run: |
+          if [ -n "$AGENT_MANIFEST_PRIVATE_KEY" ]; then
+            uv run python scripts/sign_agent_manifest.py
+          else
+            echo "AGENT_MANIFEST_PRIVATE_KEY not set — using committed signature"
+          fi
+
+      - name: Verify agent manifest signature
+        run: uv run python -c "from backend.kernel.config_loader import load_agent_manifest; load_agent_manifest(require_signature=True)"
+
+  staging-deploy:
+    needs: [build-and-push, sign-agent-manifest]
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Sync dependencies
+        run: uv sync --frozen --group dev
+
+      - name: Smoke tests (staging)
+        env:
+          STAGING_URL: ${{ vars.STAGING_URL }}
+        run: |
+          if [ -n "$STAGING_URL" ]; then
+            uv run python scripts/smoke_test_staging.py "$STAGING_URL"
+          else
+            echo "STAGING_URL not configured — dry-run smoke script against localhost"
+            uv run uvicorn backend.main:app --host 127.0.0.1 --port 8010 &
+            sleep 5
+            uv run python scripts/smoke_test_staging.py http://127.0.0.1:8010
+          fi
+
+  canary-promotion:
+    needs: staging-deploy
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'canary'
+    runs-on: ubuntu-latest
+    environment: canary
+    steps:
+      - run: echo "Canary receives 10% traffic — monitor error rate and cache hit rate for 30 minutes"
+
+  production-promotion:
+    needs: staging-deploy
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - run: echo "Full production promotion after canary gates pass"

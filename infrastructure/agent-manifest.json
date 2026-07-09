@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "generated": "2026-07-09",
+  "agents": {
+    "context_agent": {"prompt_version": "v2.0.0", "canonical_role": "tool_operator"},
+    "planner_agent": {"prompt_version": "v2.0.0", "canonical_role": "planner"},
+    "verification_agent": {"prompt_version": "v2.0.0", "canonical_role": "verifier"},
+    "adversarial_agent": {"prompt_version": "v2.0.0", "canonical_role": "adversary"},
+    "critic_agent": {"prompt_version": "v2.0.0", "canonical_role": "critic"},
+    "orchestrator_agent": {"prompt_version": "v2.0.0", "canonical_role": "presenter"}
+  },
+  "tool_allowlists": {
+    "context_agent": ["tasks.list", "projects.list", "comments.list"],
+    "planner_agent": [],
+    "verification_agent": [],
+    "adversarial_agent": [],
+    "critic_agent": [],
+    "orchestrator_agent": []
+  }
+}

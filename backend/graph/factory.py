@@ -5,6 +5,7 @@ from __future__ import annotations
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.graph.builder import TaskFlowAIGraph, build_taskflow_ai_graph
+from backend.kernel.config_loader import load_agent_manifest
 from backend.kernel.tool_manager import ToolManager
 from backend.llm.deterministic import DeterministicPlannerProvider
 from backend.llm.local import LocalLLMProvider
@@ -50,12 +51,14 @@ def build_taskflow_graph(
     nhi = get_nhi_registry()
     credential_broker = build_credential_broker(settings, session=session)
     consent_checker = ConsentService(session) if session is not None else None
+    manifest = load_agent_manifest(require_signature=settings.app_env == "production")
     tool_manager = ToolManager(
         mcp_client=PostgresMCPClient(),
         validator=validator,
         nhi_validator=nhi,
         credential_broker=credential_broker,
         consent_checker=consent_checker,
+        allowlist=manifest.tool_allowlists,
     )
     return build_taskflow_ai_graph(
         llm_router=llm_router or build_llm_router(settings),

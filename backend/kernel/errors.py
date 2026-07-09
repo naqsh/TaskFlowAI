@@ -31,3 +31,7 @@ class ConfusedDeputyError(KernelError):
 
 class AgentIdentityError(KernelError):
     """Raised when NHI agent certificate validation fails."""
+
+
+class ConfigSignatureError(KernelError):
+    """Raised when agent manifest signature verification fails."""

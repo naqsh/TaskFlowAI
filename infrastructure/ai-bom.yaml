@@ -1,0 +1,56 @@
+# AI Bill of Materials — TaskFlow AI (TF-055)
+# Update cadence: weekly (CI validates freshness)
+version: "1.0.0"
+last_updated: "2026-07-09"
+owner: platform-security@taskflow-ai.local
+
+models:
+  - id: gpt-5.5
+    provider: openai
+    purpose: primary planner / orchestrator reasoning
+    security_posture: vendor-managed
+  - id: claude-opus-4-8
+    provider: anthropic
+    purpose: fallback high-reasoning tasks
+    security_posture: vendor-managed
+  - id: gpt-4o-mini
+    provider: openai
+    purpose: cost-optimized summarization
+    security_posture: vendor-managed
+  - id: llama-3.1
+    provider: ollama
+    purpose: local PII-classified fallback (TF-053)
+    security_posture: self-hosted
+  - id: prompt-guard-2
+    provider: meta-llama
+    purpose: ML prompt injection layer (LlamaFirewall)
+    security_posture: self-hosted
+
+production_libraries:
+  - fastapi
+  - pydantic
+  - pydantic-settings
+  - uvicorn
+  - structlog
+  - httpx
+  - nh3
+  - prometheus-client
+  - opentelemetry-api
+  - opentelemetry-sdk
+  - opentelemetry-exporter-otlp-proto-grpc
+  - asyncpg
+  - sqlalchemy
+  - alembic
+  - bcrypt
+  - python-jose
+  - python-multipart
+  - redis
+  - PyYAML
+  - types-PyYAML
+
+runtime_model_ids:
+  - gpt-5.5
+  - claude-opus-4-8
+  - gpt-4o-mini
+  - llama-3.1
+  - prompt-guard-2

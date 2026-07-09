@@ -23,9 +23,16 @@ Merge with **merge commit** after CI passes. Delete local epic branch; keep remo
 
 | Workflow | Trigger | Purpose |
 |---|---|---|
-| `.github/workflows/ci.yml` | PR + push to integration | Lint, typecheck, test, docker build |
+| `.github/workflows/ci.yml` | PR + push to integration | Lint, typecheck, test, docker build, pip-audit, AI-BOM |
+| `.github/workflows/deploy.yml` | Push to integration + manual | Staging → smoke → canary → prod |
 
-Cosign image signing added in TF-E6 (MVP 6).
+Cosign image signing and agent manifest signing in `deploy.yml` (TF-E6).
+
+## Supply chain
+
+- AI-BOM: `infrastructure/ai-bom.yaml`
+- Agent manifest: `infrastructure/agent-manifest.json` (+ ed25519 signature)
+- See [../docs/SUPPLY-CHAIN-SECURITY.md](../docs/SUPPLY-CHAIN-SECURITY.md) and [../docs/DEPLOYMENT-GATES.md](../docs/DEPLOYMENT-GATES.md)
 
 ---
 

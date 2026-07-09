@@ -41,3 +41,7 @@ frontend/.turbo/
 
 # Docker
 *.log
+
+# Signing keys (public keys committed; private keys CI-only)
+infrastructure/keys/*-dev.pem
+infrastructure/keys/cosign.key

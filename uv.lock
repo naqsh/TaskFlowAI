@@ -1843,6 +1843,7 @@ dev = [
 dev = [
     { name = "fakeredis" },
     { name = "mypy" },
+    { name = "pip-audit" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pytest-httpx" },
@@ -1886,6 +1887,7 @@ provides-extras = ["dev"]
 dev = [
     { name = "fakeredis", specifier = ">=2.23.0" },
     { name = "mypy", specifier = ">=1.13.0" },
+    { name = "pip-audit", specifier = ">=2.7.0" },
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
     { name = "pytest-httpx", specifier = ">=0.35.0" },
