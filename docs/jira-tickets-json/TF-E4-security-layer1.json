@@ -6,7 +6,7 @@
       "Issue Type": "Epic",
       "Status": "Done",
       "Completed": "2026-07-08",
-      "Proof": "proof/mvp4/; 156 pytest passed; jailbreak 100% block rate",
+      "Proof": "proof/mvp4/; 156 pytest passed (2026-07-09); security suite 41 passed; jailbreak 100% block rate",
       "Description": "Harden TaskFlow AI security layer: full InputSecurityScanner (regex + PromptGuard 2 + constitutional), MCPResponseValidator 3-layer tool poisoning defense, DLQ persistence, Dwell Time SLO instrumentation, Security Monitor baseline, and cryptographic audit log sealing.\n\nSCOPE:\n- Complete InputSecurityScanner with LlamaFirewall PromptGuard 2 and constitutional classifier\n- jailbreak_corpus.yaml CI tests with >95% block rate target\n- MCPResponseValidator: schema, sanitization, anomaly detection\n- DLQ PostgreSQL persistence and admin API\n- security_dwell_time_seconds histogram P95 <1 hour\n- Security Monitor: blast_radius_score, anomaly detection\n- Cryptographic hash-chain audit log sealing\n\nEFFORT: L (45 hours)\nPROJECT AREA: Security, Backend\nDEPENDENCIES: TF-E3 complete — multi-agent pipeline operational\n\nEPIC LINK: epic/taskflow-implementation\nFEATURE BRANCH: epic/TF-E4-security-layer1\n\nREFERENCE DOCS:\n- docs/TaskFlowAI_Project_Proposal.md (§ Security Framework)\n- docs/SECURITY.md\n\nSUCCESS CRITERIA:\n- >95% block rate on jailbreak_corpus.yaml in CI\n- Tool poisoning test suite passes (test_tool_poisoning.py)\n- DLQ events persisted and queryable; security violations never retried\n- Dwell time metric exported; P95 measurable in tests\n- Audit chain verify_audit_chain() detects tampering",
       "Labels": "mvp4,security,dlq,scanner",
       "Parent": ""
