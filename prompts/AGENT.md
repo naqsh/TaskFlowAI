@@ -32,4 +32,4 @@ cache-friendly system blocks (stable content first; dynamic user input last).
   sensitive to exact byte prefixes.
 - Prompt version string is included in the stable block; bumping version invalidates cache.
 - Claude uses `cache_control: { type: ephemeral }` on the last stable system block.
-- Cache warming deferred to MVP 6 (TF-058). See `docs/OBSERVABILITY.md`.
+- Cache warming: `PromptCacheWarmer` in `backend/llm/cache_warmer.py` (TF-058). Enable with `CACHE_WARMING_ENABLED=true`. See `docs/OBSERVABILITY.md`.

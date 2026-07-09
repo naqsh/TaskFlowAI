@@ -17,7 +17,7 @@ Progress tracker for all epics. Sync when JSON tickets or completion status chan
 | TF-E3 | MVP 3: AI Intelligence (part 1 + 2) | `epic/TF-E3-ai-intelligence-part2` | ✅ Implemented (TF-031..TF-040) |
 | TF-E4 | MVP 4: Security Layer 1 | `epic/TF-E4-security-layer1` | ✅ Implemented (TF-041..TF-048) |
 | TF-E5 | MVP 5: Identity & Credentials | `epic/TF-E5-identity-credentials` | ✅ Implemented (TF-049..TF-054) |
-| TF-E6 | MVP 6: Production & Supply Chain | `epic/TF-E6-production` | Planned |
+| TF-E6 | MVP 6: Production & Supply Chain | `epic/TF-E6-production` | ✅ Implemented (TF-055..TF-062) |
 | TF-E7 | Option A: Hybrid Deploy Hardening | `epic/TF-E7-hybrid-deploy` | Planned |
 
 ---
@@ -87,6 +87,23 @@ Progress tracker for all epics. Sync when JSON tickets or completion status chan
 | TF-048 | Integration tests + docs sync | ✅ Implemented |
 
 *Proof (re-verified 2026-07-09):* `uv run pytest` → 156 passed, 26 skipped; security suite 41 passed; jailbreak corpus 100% (40/40) in `proof/mvp4/`; runtime wiring via `backend/graph/post_process.py`, `backend/graph/factory.py`, `backend/security/factory.py`.
+
+---
+
+## TF-E6 Task Progress (MVP 6: Production & Supply Chain)
+
+| Task | Summary | Status |
+|---|---|---|
+| TF-055 | AI-BOM and supply chain documentation | ✅ Implemented |
+| TF-056 | OpenSSF Scorecard and pip-audit CI gates | ✅ Implemented |
+| TF-057 | MITRE ATT&CK for AI Systems coverage mapping | ✅ Implemented |
+| TF-058 | Prompt cache warming service | ✅ Implemented |
+| TF-059 | Deployment gates and canary rollout | ✅ Implemented |
+| TF-060 | Agent configuration signing | ✅ Implemented |
+| TF-061 | Governance runbooks and emergency procedures | ✅ Implemented |
+| TF-062 | MVP 6 production E2E proof and Docker signing | ✅ Implemented |
+
+*Proof (2026-07-09):* `uv run pytest` → **207 passed**, 29 skipped; see `proof/mvp6/pytest-mvp6.txt`
 
 ---
 

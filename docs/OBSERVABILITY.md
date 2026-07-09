@@ -27,10 +27,25 @@ rate(prompt_cache_misses_total[5m])
 increase(cached_tokens_saved_total[1h])
 ```
 
-### Cache warming
+### Cache warming (TF-058)
 
-Background `PromptCacheWarmer` is deferred to MVP 6 (TF-058). Until then, cold starts after idle
-are expected; monitor hit rate during active AI usage only.
+`PromptCacheWarmer` (`backend/llm/cache_warmer.py`) runs as a background task when
+`CACHE_WARMING_ENABLED=true`.
+
+| Setting | Default | Description |
+|---|---|---|
+| `CACHE_WARMING_ENABLED` | `false` | Enable background warmer on startup |
+| `CACHE_TTL` | `300` | Cache TTL reference (seconds) |
+
+Behavior:
+
+- Peak hours (08:00–18:00 UTC): warm every **4 minutes** per agent
+- Off-peak: every **15 minutes**
+- Low-traffic agents (<1 req/min): deprioritized
+- Stagger: **10s** between agents
+- Invalid API key: logs warning, does not crash app
+
+Target: `prompt_cache_hit_rate` **>70%** under load with warming enabled.
 
 ## Security dwell time SLO (TF-044)
 

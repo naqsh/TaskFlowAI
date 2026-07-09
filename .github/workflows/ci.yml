@@ -42,6 +42,13 @@ jobs:
       - name: Pytest
         run: uv run pytest
 
+      - name: Validate AI-BOM
+        run: uv run python scripts/validate_ai_bom.py
+
+      - name: pip-audit (block critical/high CVEs)
+        run: |
+          uv run pip-audit --desc on --fail-on CRITICAL --fail-on HIGH
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

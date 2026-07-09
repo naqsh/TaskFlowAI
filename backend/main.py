@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from time import perf_counter
 from uuid import uuid4
 
@@ -12,10 +13,16 @@ from prometheus_client import make_asgi_app
 
 from backend.api.v1.router import router as api_v1_router
 from backend.db.session import dispose_engine, init_engine
-from backend.exceptions import AppException
+from backend.exceptions import AppException, ServiceUnavailableError
+from backend.kernel.config_loader import load_agent_manifest
+from backend.kernel.errors import ConfigSignatureError
+from backend.llm.cache_warmer import build_cache_warmer
+from backend.llm.deterministic import DeterministicPlannerProvider
+from backend.llm.prompt_loader import PromptLoaderError, assert_all_prompt_packs
 from backend.logging_config import bind_trace_id, configure_logging, get_logger
 from backend.metrics import API_REQUEST_DURATION_SECONDS, HTTP_REQUESTS_TOTAL
 from backend.rate_limit_middleware import rate_limit_middleware
+from backend.security.bom import load_ai_bom, validate_bom_freshness
 from backend.security.nhi_registry import nhi_registry
 from backend.settings import Settings, get_settings
 from backend.telemetry import configure_telemetry, get_tracer
@@ -32,8 +39,43 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     if "asyncpg" in settings.database_url:
         init_engine(settings)
     nhi_registry.initialize()
+
+    try:
+        assert_all_prompt_packs()
+    except PromptLoaderError as exc:
+        logger.error("prompt_pack_startup_failed", error=str(exc))
+        raise
+
+    require_sig = settings.app_env == "production"
+    try:
+        manifest = load_agent_manifest(
+            Path(settings.agent_manifest_path),
+            require_signature=require_sig,
+        )
+        app.state.agent_tool_allowlists = manifest.tool_allowlists
+    except ConfigSignatureError as exc:
+        if require_sig:
+            raise
+        logger.warning("agent_manifest_unsigned", error=str(exc))
+
+    bom_path = Path(settings.ai_bom_path)
+    if bom_path.is_file():
+        bom = load_ai_bom(bom_path)
+        stale = validate_bom_freshness(bom)
+        if stale:
+            logger.warning("ai_bom_stale", message=stale)
+
+    warmer = build_cache_warmer(
+        provider=DeterministicPlannerProvider(),
+        enabled=settings.cache_warming_enabled,
+        cache_ttl_seconds=settings.cache_ttl,
+    )
+    warmer.start()
+    app.state.cache_warmer = warmer
+
     logger.info("application_started", app_env=settings.app_env, version=settings.app_version)
     yield
+    await warmer.stop()
     if "asyncpg" in settings.database_url:
         await dispose_engine()
 
@@ -114,6 +156,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # Collaboration endpoints use redis-backed rate limiting (TF-018).
     app.middleware("http")(rate_limit_middleware)
+
+    @app.middleware("http")
+    async def ai_kill_switch_middleware(request: Request, call_next):  # type: ignore[no-untyped-def]
+        if not resolved_settings.ai_features_enabled and request.url.path.startswith("/api/v1/ai/"):
+            exc = ServiceUnavailableError(
+                "AI features are temporarily disabled",
+                details={"kill_switch": "AI_FEATURES_ENABLED=false"},
+            )
+            return JSONResponse(status_code=exc.status_code, content=exc.to_dict())
+        return await call_next(request)
 
     @app.exception_handler(AppException)
     async def app_exception_handler(_request: Request, exc: AppException) -> JSONResponse:

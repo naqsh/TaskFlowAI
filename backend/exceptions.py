@@ -67,3 +67,8 @@ class PayloadTooLargeError(AppException):
 class ConsentRequiredError(AppException):
     status_code = 403
     error_code = "consent_required"
+
+
+class ServiceUnavailableError(AppException):
+    status_code = 503
+    error_code = "service_unavailable"

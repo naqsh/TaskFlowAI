@@ -89,3 +89,7 @@ Internal/private URLs blocked by allowlist.
 - `legitimate_tasks_corpus.yaml`: <1% false positives
 - `test_tool_poisoning.py`: quarantine and sanitization
 - `test_security_integration.py`: injection → DLQ → audit chain
+
+## MITRE ATT&CK for AI Systems
+
+Full technique mapping: [security/MITRE-ATTACK-COVERAGE.md](security/MITRE-ATTACK-COVERAGE.md) (TF-057, >80% coverage target).
