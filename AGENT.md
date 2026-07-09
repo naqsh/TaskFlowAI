@@ -42,7 +42,7 @@ Root index for TaskFlow AI. Engineering standards, agent specs, and prompt rules
 | **MVP 1** | Auth, RBAC, CRUD, docs scaffold, CI, Docker backend | ✅ Complete |
 | **MVP 2** | Collaboration, notifications, activity feed | ✅ Complete |
 | **MVP 3** | Multi-agent AI, LangGraph, MCP, Agent OS Kernel | ✅ Complete (Part 1 + Part 2) |
-| **MVP 4** | Security Layer 1 — injection defense, DLQ, observability | Planned |
+| **MVP 4** | Security Layer 1 — injection defense, DLQ, observability | ✅ Complete |
 | **MVP 5** | Identity, JIT credentials, delegation tokens | Planned |
 | **MVP 6** | Production, supply chain, Cosign, governance | Planned |
 | **Option A (TF-E7)** | Vercel FE + Docker BE hybrid deploy hardening | Planned |

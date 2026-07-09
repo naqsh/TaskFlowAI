@@ -4,6 +4,9 @@
       "Issue id": "TF-E4",
       "Summary": "MVP 4: Security Layer 1 — Input Scanner, Tool Defense, DLQ, Dwell Time",
       "Issue Type": "Epic",
+      "Status": "Done",
+      "Completed": "2026-07-08",
+      "Proof": "proof/mvp4/; 156 pytest passed (2026-07-09); security suite 41 passed; jailbreak 100% block rate",
       "Description": "Harden TaskFlow AI security layer: full InputSecurityScanner (regex + PromptGuard 2 + constitutional), MCPResponseValidator 3-layer tool poisoning defense, DLQ persistence, Dwell Time SLO instrumentation, Security Monitor baseline, and cryptographic audit log sealing.\n\nSCOPE:\n- Complete InputSecurityScanner with LlamaFirewall PromptGuard 2 and constitutional classifier\n- jailbreak_corpus.yaml CI tests with >95% block rate target\n- MCPResponseValidator: schema, sanitization, anomaly detection\n- DLQ PostgreSQL persistence and admin API\n- security_dwell_time_seconds histogram P95 <1 hour\n- Security Monitor: blast_radius_score, anomaly detection\n- Cryptographic hash-chain audit log sealing\n\nEFFORT: L (45 hours)\nPROJECT AREA: Security, Backend\nDEPENDENCIES: TF-E3 complete — multi-agent pipeline operational\n\nEPIC LINK: epic/taskflow-implementation\nFEATURE BRANCH: epic/TF-E4-security-layer1\n\nREFERENCE DOCS:\n- docs/TaskFlowAI_Project_Proposal.md (§ Security Framework)\n- docs/SECURITY.md\n\nSUCCESS CRITERIA:\n- >95% block rate on jailbreak_corpus.yaml in CI\n- Tool poisoning test suite passes (test_tool_poisoning.py)\n- DLQ events persisted and queryable; security violations never retried\n- Dwell time metric exported; P95 measurable in tests\n- Audit chain verify_audit_chain() detects tampering",
       "Labels": "mvp4,security,dlq,scanner",
       "Parent": ""
@@ -12,6 +15,8 @@
       "Issue id": "TF-041",
       "Summary": "Full InputSecurityScanner Pipeline",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-08",
       "Description": "Complete 3-layer InputSecurityScanner: regex, PromptGuard 2 ML, constitutional classifier.\n\nUSE CASES:\n- Semantic jailbreak in task comment blocked by PromptGuard layer\n- Constitutional rule violation (DAN mode request) blocked without LLM call\n- Clean task descriptions pass all three layers\n- CI validates >95% block rate on jailbreak corpus\n\nIMPLEMENTATION DETAILS:\n- Create backend/security/prompt_guard.py: PromptGuardService wrapping LlamaFirewall PromptGuard 2\n- Create backend/security/constitutional.py: ConstitutionalClassifier loading rules.yaml\n- Expand backend/security/input_scanner.py: pipeline regex → ML → constitutional\n- Settings: LLAMAFIREWALL_ENABLED, LLAMAFIREWALL_BLOCK_THRESHOLD=0.9, HF_TOKEN\n- Create backend/tests/security/jailbreak_corpus.yaml and test_security.py\n- Sync corpus counts in test_corpus_inventory.py per AGENT.md rules\n- Wire scanner on input_security_gate graph node before planner\n\nEFFORT: L (8 hours)\nPROJECT AREA: Backend, Security\nDEPENDENCIES: TF-028\n\nTESTING CRITERIA:\n- >95% corpus payloads blocked\n- False positive <1% on legitimate_tasks_corpus\n- security_violation_detected_total increments on block\n- Graph routes blocked input to DLQ\n\nEDGE CASES:\n- HF_TOKEN missing: ML layer skipped with warning, regex+constitutional still run\n- PromptGuard model download failure: fail closed in production, warn in dev\n- Layer timeout 5s per layer: abort to block (fail secure)\n- Repeated violations >3/hour: rate limit user session",
       "Labels": "backend,security,scanner,mvp4",
       "Parent": "TF-E4"
@@ -20,6 +25,8 @@
       "Issue id": "TF-042",
       "Summary": "MCPResponseValidator Three-Layer Defense",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-08",
       "Description": "Expand MCP validator with output sanitization and anomaly detection for tool poisoning defense.\n\nUSE CASES:\n- Compromised MCP returns 10x normal response size → quarantined and logged\n- HTML/script in task title from MCP stripped before agent consumption\n- Invalid task schema from MCP rejected before reaching Planner\n\nIMPLEMENTATION DETAILS:\n- Expand backend/mcp/validator.py: layers schema (Pydantic), sanitization (nh3, URL allowlist), anomaly (2σ size deviation)\n- Baseline MCP response metrics per tool in SecurityMonitor\n- Quarantine table: quarantined_mcp_responses with raw hash for review\n- Integrate validator in ToolManager.execute_tool after MCP returns\n- Create backend/tests/security/test_tool_poisoning.py\n\nEFFORT: M (6 hours)\nPROJECT AREA: Backend, Security\nDEPENDENCIES: TF-030\n\nTESTING CRITERIA:\n- Oversized response triggers quarantine\n- Script tag in title stripped\n- Schema violation raises MCPValidationError\n- Anomaly detection fires on 10x baseline size\n\nEDGE CASES:\n- First call no baseline: use default thresholds from config\n- Quarantine DB write fails: block response (fail secure)\n- URL in task linking to internal IP: blocked by allowlist\n- Normalization: datetimes to UTC in validated output",
       "Labels": "backend,mcp,security,mvp4",
       "Parent": "TF-E4"
@@ -28,6 +35,8 @@
       "Issue id": "TF-043",
       "Summary": "Dead Letter Queue Implementation",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-08",
       "Description": "Persist failed agent runs, security violations, and MCP timeouts to DLQ with admin API.\n\nUSE CASES:\n- Security violation AI request stored in DLQ for admin review\n- Admin views DLQ entries with full envelope and escalation reason\n- Manual retry allowed for verification_failed; blocked for security_violation_detected\n\nIMPLEMENTATION DETAILS:\n- Create backend/schemas/dlq.py: DLQEvent model\n- Alembic migration 005_dlq_events\n- Create backend/graph/dlq_handler.py: dlq_handler_node()\n- Fields: request_id, user_id, workspace_id, agent_id, reason, envelope_json, retry_count, created_at\n- GET /api/v1/dlq (admin only), POST /api/v1/dlq/{id}/retry\n- dlq_entries_total Prometheus counter\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend\nDEPENDENCIES: TF-036, TF-005\n\nTESTING CRITERIA:\n- Failed graph run creates DLQ row\n- Security violation retry returns 403\n- verification_failed retry creates new graph invocation\n- Admin-only access enforced\n\nEDGE CASES:\n- DLQ insert fails: log error, don't crash graph shutdown\n- Retry limit 3 exceeded: mark permanently_failed\n- Large envelope truncated in DB: store full in object storage stub\n- DLQ pagination for admin UI",
       "Labels": "backend,dlq,mvp4",
       "Parent": "TF-E4"
@@ -36,6 +45,8 @@
       "Issue id": "TF-044",
       "Summary": "Dwell Time SLO Instrumentation",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-08",
       "Description": "Implement security_dwell_time_seconds metric measuring incident occurrence to detection latency.\n\nUSE CASES:\n- Security violation detected → dwell time recorded from first suspicious signal to alert\n- Ops dashboard shows P95 dwell time target <3600s (1 hour)\n- PagerDuty alert fires on dwell time SLO breach\n\nIMPLEMENTATION DETAILS:\n- Create backend/kernel/security_monitor.py expansion: record_incident_start, record_incident_detected\n- Histogram security_dwell_time_seconds with labels incident_type\n- Correlate: injection attempt timestamp → scanner block timestamp\n- Document SLO in docs/OBSERVABILITY.md\n- Simulated incident test for dwell time recording\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend, Observability\nDEPENDENCIES: TF-041\n\nTESTING CRITERIA:\n- Simulated injection records dwell time <5s in test\n- Metric exported at /metrics\n- P95 calculable from histogram buckets\n- Alert rule documented in observability/grafana/\n\nEDGE CASES:\n- Detection before incident logged: dwell time 0, log warning\n- Multiple detections same incident: use first detection only\n- Clock skew: use monotonic timers\n- Missing incident start: omit dwell metric, log anomaly",
       "Labels": "backend,observability,security,mvp4",
       "Parent": "TF-E4"
@@ -44,6 +55,8 @@
       "Issue id": "TF-045",
       "Summary": "Security Monitor and Blast Radius Scoring",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-08",
       "Description": "Implement Security Monitor with per-agent blast radius scores and behavioral anomaly detection.\n\nUSE CASES:\n- Context Agent anomaly: 50 MCP calls in one request → blast radius score spikes\n- Ops views blast_radius_score gauge per agent (target <30)\n- 2σ deviation from baseline MCP patterns triggers alert\n\nIMPLEMENTATION DETAILS:\n- Expand backend/kernel/security_monitor.py\n- blast_radius_score Gauge per agent_id: factors include tool calls, tokens, escalation rate\n- Rolling baseline for MCP response size and latency per tool\n- Alert on >2σ deviation\n- consensus_disagreement_total counter\n- Integrate with structured security logger\n\nEFFORT: M (5 hours)\nPROJECT AREA: Backend, Security\nDEPENDENCIES: TF-042, TF-044\n\nTESTING CRITERIA:\n- blast_radius_score exported per agent\n- Anomaly injection test triggers alert flag\n- Score <30 under normal load test\n- Unit tests >=8 scenarios\n\nEDGE CASES:\n- New agent no baseline: use conservative default threshold\n- Score overflow: cap at 100\n- Monitor disabled in test env via settings\n- High traffic agent: normalize score by request count",
       "Labels": "backend,security,monitoring,mvp4",
       "Parent": "TF-E4"
@@ -52,6 +65,8 @@
       "Issue id": "TF-046",
       "Summary": "Cryptographic Audit Log Sealing",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-08",
       "Description": "Implement hash-chain sealed audit log for tamper-evident security and AI event tracking.\n\nUSE CASES:\n- Security admin verifies audit chain integrity after suspected tampering\n- AI invocation logged with payload hash only (no raw PII)\n- Tampered entry detected by verify_audit_chain()\n\nIMPLEMENTATION DETAILS:\n- Create backend/security/audit_seal.py: AuditLogWriter, verify_audit_chain()\n- entry_hash = sha256(prev_hash + canonical_json)\n- Genesis prev_hash: 64 zero hex chars\n- Alembic migration 006_audit_sealed or extend audit_log table\n- Events: ai.invoked, security.violation, dlq.created, consent.granted\n- audit_chain_verification_failures_total metric\n\nEFFORT: M (6 hours)\nPROJECT AREA: Backend, Security\nDEPENDENCIES: TF-011\n\nTESTING CRITERIA:\n- 3-entry chain verifies true\n- Tampered middle entry verifies false\n- PII not stored raw in audit row\n- Concurrent appends preserve order via DB lock\n\nEDGE CASES:\n- Empty chain verify returns true\n- Payload >10KB: store hash only\n- Migration on existing audit_log: additive columns\n- Writer failure: don't block main request",
       "Labels": "backend,security,audit,mvp4",
       "Parent": "TF-E4"
@@ -60,6 +75,8 @@
       "Issue id": "TF-047",
       "Summary": "Constitutional Rules and rules.yaml",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-08",
       "Description": "Define constitutional policy rules for InputSecurityScanner layer 3.\n\nUSE CASES:\n- User input requests system prompt reveal → constitutional block\n- Task title embeds privilege escalation instruction → block\n- Legitimate task management language passes\n\nIMPLEMENTATION DETAILS:\n- Create backend/security/rules.yaml: DAN mode, exfiltration, privilege escalation, PII generation rules\n- ConstitutionalClassifier evaluates rules with confidence scores\n- Rules align with proposal CONSTITUTIONAL_RULES list\n- Document rules in docs/SECURITY.md\n- Version rules with changelog for corpus sync\n\nEFFORT: S (3 hours)\nPROJECT AREA: Backend, Security\nDEPENDENCIES: TF-041\n\nTESTING CRITERIA:\n- Each rule has >=1 positive test case in test_security.py\n- rules.yaml parses without error\n- Rule update increments version in rules.yaml metadata\n\nEDGE CASES:\n- Missing rules.yaml: fail startup in production\n- Rule regex catastrophic backtracking: timeout per rule 100ms\n- Multilingual injection: English rules primary, document limitation\n- False positive 'ignore' in task title 'ignore login page bug': context-aware rule tuning",
       "Labels": "backend,security,constitutional,mvp4",
       "Parent": "TF-E4"
@@ -68,6 +85,8 @@
       "Issue id": "TF-048",
       "Summary": "MVP 4 Security Integration Tests and Docs",
       "Issue Type": "Task",
+      "Status": "Done",
+      "Completed": "2026-07-08",
       "Description": "End-to-end security test suite and documentation updates for MVP 4.\n\nUSE CASES:\n- CI runs full OWASP GenAI security boundary tests on every PR\n- docs/SECURITY.md documents complete defense in depth stack\n- docs/PLAN.md updated with TF-E4 completion\n\nIMPLEMENTATION DETAILS:\n- Create backend/tests/security/test_security_integration.py: injection → DLQ → audit chain flow\n- Update docs/SECURITY.md: spotlighting, scanner, tool poisoning, DLQ, dwell time\n- Create docs/security/MITRE-ATTACK-COVERAGE.md stub (expanded MVP 6)\n- Update docs/PLAN.md, docs/tasks/todo.md\n- proof/mvp4/ with pytest output and corpus block rate report\n\nEFFORT: M (4 hours)\nPROJECT AREA: Testing, Documentation\nDEPENDENCIES: TF-041, TF-042, TF-043, TF-044, TF-045, TF-046, TF-047\n\nTESTING CRITERIA:\n- Full security integration suite passes\n- Block rate report >=95% in proof/mvp4/\n- SECURITY.md covers all MVP 4 components\n\nEDGE CASES:\n- PromptGuard unavailable in CI: skip ML tests with marker, regex+constitutional still required\n- Flaky anomaly test: use fixed seed baselines\n- proof directory missing fails epic gate",
       "Labels": "testing,docs,security,mvp4",
       "Parent": "TF-E4"

@@ -1,0 +1,8 @@
+.........................................                                [100%]
+41 passed in 0.19s
+
+Full backend gate (2026-07-09):
+- ruff check: All checks passed
+- ruff format --check: 162 files already formatted
+- mypy: Success (162 source files)
+- pytest: 156 passed, 26 skipped

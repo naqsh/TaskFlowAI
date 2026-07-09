@@ -24,6 +24,8 @@ dependencies = [
     "python-jose[cryptography]>=3.3.0",
     "python-multipart>=0.0.9",
     "redis>=5.2.0",
+    "PyYAML>=6.0.2",
+    "types-PyYAML>=6.0.12.20240917",
 ]
 
 [project.optional-dependencies]
@@ -51,6 +53,7 @@ asyncio_default_fixture_loop_scope = "function"
 testpaths = ["backend/tests"]
 markers = [
     "integration: database integration tests requiring TEST_DATABASE_URL",
+    "ml_security: tests requiring PromptGuard ML model (skipped when HF_TOKEN unset)",
 ]
 
 [tool.coverage.run]

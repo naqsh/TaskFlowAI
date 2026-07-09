@@ -7,6 +7,7 @@ from backend.api.v1.ai import router as ai_router
 from backend.api.v1.attachments import router as attachments_router
 from backend.api.v1.auth import router as auth_router
 from backend.api.v1.comments import router as comments_router
+from backend.api.v1.dlq import router as dlq_router
 from backend.api.v1.due_reminders import router as due_reminders_router
 from backend.api.v1.notifications import router as notifications_router
 from backend.api.v1.preferences import router as preferences_router
@@ -28,6 +29,7 @@ router.include_router(search_router)
 router.include_router(activity_router)
 router.include_router(preferences_router)
 router.include_router(ai_router)
+router.include_router(dlq_router)
 router.include_router(due_reminders_router)
 
 
