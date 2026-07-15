@@ -1191,7 +1191,9 @@ taskflow-ai/
 │   │   ├── context/AGENT.md
 │   │   ├── verification/AGENT.md
 │   │   ├── adversarial/AGENT.md
-│   │   └── critic/AGENT.md
+│   │   ├── critic/AGENT.md
+│   │   └── refactoring/AGENT.md
+│   ├── refactoring/            # ADR-004 agentic code refactoring loop
 │   ├── graph/AGENT.md
 │   ├── mcp/
 │   │   ├── client.py
@@ -1285,9 +1287,20 @@ taskflow-ai/
 | Agent | Scope | Rules File | Order |
 |---|---|---|---|
 | **Coding Agent** | Endpoints, services, LangGraph | `.cursor/rules/coding.mdc` | 1st |
-| **Refactor Agent** | Schema validation, sanitization | `.cursor/rules/refactor.mdc` | 2nd |
+| **Refactor Agent** | Schema validation, sanitization, ADR-004 loop | `.cursor/rules/refactor.mdc` | 2nd |
 | **Testing Agent** | Unit, integration, security tests | `.cursor/rules/testing.mdc` | 3rd |
 | **Documentation Agent** | `AGENT.md`, docs sync | `.cursor/rules/docs.mdc` | 4th |
+
+### Agentic Code Refactoring (ADR-004)
+
+Opt-in sandboxed loop for goal-driven Python refactors (admin + AI consent):
+
+1. **Analyze** — Search AST symbols/call sites; emit prioritized findings (no mutation)
+2. **Human approval** — caller selects `approved_finding_ids`
+3. **Apply** — Snapshot → deterministic AST patch → Verify → automatic Rollback on failure
+4. **Feedback** — JSONL accept/reject + verify outcomes (`REFACTORING_FEEDBACK_PATH`)
+
+Disabled by default (`REFACTORING_ENABLED=false`). See `docs/adr/ADR-004-ai-code-refactoring-alignment.md`.
 
 ---
 

@@ -43,6 +43,7 @@ backend/
 ├── security/               # Spotlighting, RBAC, injection (MVP 3+)
 ├── agents/                 # Multi-agent nodes (MVP 3+)
 ├── graph/                  # LangGraph (MVP 3+)
+├── refactoring/            # Agentic code refactoring loop (ADR-004)
 └── tests/
 ```
 

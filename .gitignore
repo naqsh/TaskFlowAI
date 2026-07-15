@@ -45,3 +45,6 @@ frontend/.turbo/
 # Signing keys (public keys committed; private keys CI-only)
 infrastructure/keys/*-dev.pem
 infrastructure/keys/cosign.key
+
+# Agentic refactoring feedback (ADR-004)
+.taskflow/

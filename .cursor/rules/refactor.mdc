@@ -1,5 +1,5 @@
 ---
-description: Rules for the Refactor Agent — schema tightness, sanitization
+description: Rules for the Refactor Agent — schema tightness, sanitization, ADR-004
 globs: ["**/*.py", "**/*.ts", "**/*.tsx"]
 alwaysApply: false
 ---
@@ -10,5 +10,18 @@ alwaysApply: false
 - Ensure nh3 (backend) and DOMPurify (frontend) on all user HTML paths
 - Remove duplication; keep repository pattern consistent
 - AgentResultEnvelope consistency (MVP 3+)
+
+## Agentic refactoring loop (ADR-004)
+
+When performing large or multi-file refactors:
+
+1. Prefer deterministic AST renames via `backend/refactoring/` over guessed text edits
+2. Never apply patches without human-approved finding IDs
+3. Snapshot before patch; verify; rollback on failure
+4. Record accept/reject + verify outcomes for feedback
+5. Stay inside `REFACTORING_SANDBOX_ROOT` when using the API
+6. Use inline (this Cursor agent) for small local edits; use `/api/v1/refactoring/*` for goal-driven multi-file cleanup
+
+See `docs/adr/ADR-004-ai-code-refactoring-alignment.md`.
 
 *Refactor Agent Rules — TaskFlow AI v0.1.0*

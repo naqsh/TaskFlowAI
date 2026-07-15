@@ -1,6 +1,6 @@
 # Implementation Plan — TaskFlow AI
 
-**Version:** 0.1.0 | **Last Updated:** 2026-07-09
+**Version:** 0.1.0 | **Last Updated:** 2026-07-16
 
 Progress tracker for all epics. Sync when JSON tickets or completion status changes.
 
@@ -19,6 +19,7 @@ Progress tracker for all epics. Sync when JSON tickets or completion status chan
 | TF-E5 | MVP 5: Identity & Credentials | `epic/TF-E5-identity-credentials` | ✅ Implemented (TF-049..TF-054) |
 | TF-E6 | MVP 6: Production & Supply Chain | `epic/TF-E6-production` | ✅ Implemented (TF-055..TF-062) |
 | TF-E7 | Option A: Hybrid Deploy Hardening | `epic/TF-E7-hybrid-deploy` | Planned |
+| ADR-004 | Agentic Code Refactoring Loop | — | ✅ Implemented (YOLO 2026-07-16) |
 
 ---
 
@@ -104,6 +105,19 @@ Progress tracker for all epics. Sync when JSON tickets or completion status chan
 | TF-062 | MVP 6 production E2E proof and Docker signing | ✅ Implemented |
 
 *Proof (2026-07-09):* `uv run pytest` → **207 passed**, 29 skipped; see `proof/mvp6/pytest-mvp6.txt`
+
+---
+
+## ADR-004 Task Progress (Agentic Code Refactoring)
+
+| Task | Summary | Status |
+|---|---|---|
+| ADR-004-A | `backend/refactoring/` sandbox, search, snapshot, AST patch, verify, feedback | ✅ Implemented (YOLO) |
+| ADR-004-B | Envelope nodes in `backend/agents/refactoring/` | ✅ Implemented (YOLO) |
+| ADR-004-C | `/api/v1/refactoring/*` + settings feature flags | ✅ Implemented (YOLO) |
+| ADR-004-D | Unit tests + docs sync (AGENT.md, proposal, refactor.mdc) | ✅ Implemented (YOLO) |
+
+*Proof:* `uv run pytest backend/tests/test_adr004_refactoring.py` (2026-07-16)
 
 ---
 
