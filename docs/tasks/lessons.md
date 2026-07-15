@@ -28,6 +28,7 @@ Format: **Date | Mistake Pattern | Root Cause | Rule to Prevent Recurrence**
 
 | Date | Mistake Pattern | Root Cause | Rule |
 |---|---|---|---|
+| 2026-07-16 | Full pytest blocked by nh3 native DLL App Control policy | Windows Application Control blocked `.venv` nh3 extension; conftest imports `create_app` → nh3 | On locked-down hosts, prove ADR-004 with `uv run pytest backend/tests/test_adr004_refactoring.py --noconftest`; still run full suite where App Control allows |
 | 2026-07-08 | Lint/type violations after refactor | Added new telemetry helper without return type annotation and introduced an overlong line failing ruff E501 | Run `uv run ruff check backend --fix` and `uv run mypy backend` immediately after refactors; only then proceed |
 | 2026-07-08 | Frontend auto-applied AI draft without preview confirm | Initial AITaskCreator applied draft on generate, skipping TF-040 preview→confirm flow | Keep AI draft in preview state until explicit “Use draft” |
 | — | — | — | Run full backend verification gate before marking backend tasks done |

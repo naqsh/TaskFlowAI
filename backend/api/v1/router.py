@@ -13,6 +13,7 @@ from backend.api.v1.due_reminders import router as due_reminders_router
 from backend.api.v1.notifications import router as notifications_router
 from backend.api.v1.preferences import router as preferences_router
 from backend.api.v1.projects import router as projects_router
+from backend.api.v1.refactoring import router as refactoring_router
 from backend.api.v1.search import router as search_router
 from backend.api.v1.tasks import router as tasks_router
 from backend.api.v1.workspaces import router as workspaces_router
@@ -33,6 +34,7 @@ router.include_router(ai_router)
 router.include_router(consent_router)
 router.include_router(dlq_router)
 router.include_router(due_reminders_router)
+router.include_router(refactoring_router)
 
 
 @router.get("/ping")

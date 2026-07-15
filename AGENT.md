@@ -46,6 +46,7 @@ Root index for TaskFlow AI. Engineering standards, agent specs, and prompt rules
 | **MVP 5** | Identity, JIT credentials, delegation tokens | ✅ Complete |
 | **MVP 6** | Production, supply chain, Cosign, governance | ✅ Complete |
 | **Option A (TF-E7)** | Vercel FE + Docker BE hybrid deploy hardening | Planned |
+| **ADR-004** | Agentic code refactoring loop (sandboxed) | ✅ Implemented (YOLO) |
 
 ---
 
@@ -66,6 +67,8 @@ Root index for TaskFlow AI. Engineering standards, agent specs, and prompt rules
 | Supply chain / AI-BOM | docs/SUPPLY-CHAIN-SECURITY.md | MVP 6 |
 | Deployment gates | docs/DEPLOYMENT-GATES.md | MVP 6 |
 | Governance | docs/GOVERNANCE.md | MVP 6 |
+| Agentic refactoring (ADR-004) | docs/adr/ADR-004-ai-code-refactoring-alignment.md | ADR |
+| Agentic refactoring API guide | docs/AGENTIC-REFACTORING.md | ADR |
 | Self-improvement log | docs/tasks/lessons.md | MVP 1 |
 | Local / Docker setup | docs/guidance/try-it-locally.md | MVP 1 |
 | Supabase setup | docs/guidance/supabase-setup.md | MVP 1 |
@@ -82,11 +85,13 @@ Per-agent `AGENT.md` files under `backend/agents/` are created during MVP 3 — 
 | Cursor Agent | Scope | Rules File | Order |
 |---|---|---|---|
 | **Coding Agent** | Endpoints, services, UI components | `.cursor/rules/coding.mdc` | 1st |
-| **Refactor Agent** | Schema validation, sanitization | `.cursor/rules/refactor.mdc` | 2nd |
+| **Refactor Agent** | Schema validation, sanitization, ADR-004 loop awareness | `.cursor/rules/refactor.mdc` | 2nd |
 | **Testing Agent** | Boundary and integration tests | `.cursor/rules/testing.mdc` | 3rd |
 | **Documentation Agent** | Domain `AGENT.md` and docs sync | `.cursor/rules/docs.mdc` | 4th |
 
 Epic workflow: branch from `epic/taskflow-implementation` → implement → refactor → test → docs → PR → merge commit.
+
+**Agentic code refactoring (ADR-004):** Opt-in sandboxed API under `/api/v1/refactoring/*` (`REFACTORING_ENABLED`). Loop: Search → Report → Human approval → Snapshot → AST Patch → Verify → Rollback, with JSONL feedback. See `docs/adr/ADR-004-ai-code-refactoring-alignment.md` and `backend/agents/refactoring/AGENT.md`.
 
 **mTLS extension (MVP 6+):** NHI registry in `backend/security/nhi_registry.py` supports future mTLS by swapping self-signed dev certs for Vault PKI-issued certificates without changing `ToolManager` validation interface.
 

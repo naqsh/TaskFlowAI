@@ -63,6 +63,12 @@ class Settings(BaseSettings):
     agent_manifest_path: str = "infrastructure/agent-manifest.json"
     ai_bom_path: str = "infrastructure/ai-bom.yaml"
 
+    # Agentic code refactoring (ADR-004) — opt-in, sandboxed
+    refactoring_enabled: bool = False
+    refactoring_sandbox_root: str = ""
+    refactoring_verify_command: str = ""
+    refactoring_feedback_path: str = ".taskflow/refactoring-feedback.jsonl"
+
     @model_validator(mode="after")
     def validate_production_secrets(self) -> Self:
         insecure_jwt_markers = ("dev-only", "change-in-production")
