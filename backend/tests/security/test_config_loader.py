@@ -14,8 +14,10 @@ from backend.kernel.config_loader import load_agent_manifest, verify_signature
 from backend.kernel.errors import ConfigSignatureError
 
 
-def test_valid_signature_loads_config() -> None:
-    manifest = load_agent_manifest()
+def test_valid_signature_loads_config(tmp_path: Path) -> None:
+    manifest = load_agent_manifest(
+        require_signature=False, signature_path=tmp_path / "nonexistent.sig"
+    )
     assert "context_agent" in manifest.agents
     assert "tasks.list" in manifest.tool_allowlists["context_agent"]
 
@@ -55,6 +57,8 @@ def test_unsigned_manifest_fails_in_production_mode(tmp_path: Path) -> None:
         load_agent_manifest(manifest_path, require_signature=True, signature_path=sig_path)
 
 
-def test_unsigned_manifest_allowed_when_not_required() -> None:
-    manifest = load_agent_manifest(require_signature=False)
+def test_unsigned_manifest_allowed_when_not_required(tmp_path: Path) -> None:
+    manifest = load_agent_manifest(
+        require_signature=False, signature_path=tmp_path / "nonexistent.sig"
+    )
     assert manifest.version
